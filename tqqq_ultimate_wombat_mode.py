@@ -1,32 +1,42 @@
-import yfinance as yf
 import pandas as pd
 import numpy as np
 
 # --- Little Wombat Quant Lab: Ultimate Strategy ---
 # Code Name: tqqq_ultimate_wombat_mode.py
 # Optimized by: 代码熊 🐻
-# Version: 2.0
+# Version: 3.0
 #
 # STRATEGY SUMMARY:
-# 1. Global Safety Valve: 200-Day Moving Average (MA).
-#    - If Price < 200 MA: "Bear Mode" -> 100% Cash.
-# 2. Phase 1: Accumulation (Wealth Building)
-#    - Bull Mode: 80% TQQQ / 20% Cash reserve.
-#    - "3Q" Logic: Buy dips (Weekly Return < -3%) using cash.
-#    - RSI Oversold Boost: Extra buy when RSI < 30.
-#    - Volatility Scaling: Reduce equity % in high-vol regimes.
-# 3. Phase 2: Harvesting (Financial Independence)
-#    - 9Sig Value Averaging with bear-mode target pause.
-#    - Drawdown Guard: Halt harvesting if portfolio drops >15% from peak.
+# 1. THREE-REGIME Detection (MA50 + MA200):
+#    - BEAR:             Price < MA200              → 0% equity
+#    - TRANSITION:       Price > MA200, MA50 < MA200 → 50% equity (cautious)
+#    - BULL_CONFIRMED:   Price > MA200, MA50 > MA200 → 80–88% equity
+# 2. Momentum Score: Weighted composite of 1M (21d) + 3M (63d) returns
+#    - Strong momentum in bull: boost equity ratio up to 88%
+#    - Deep momentum collapse: reduce dip-buy fraction (avoid falling knives)
+# 3. Tiered Dip-Buy Logic (replaces binary 3Q trigger):
+#    - Weekly < -3%:  deploy 70% cash
+#    - Weekly < -7%:  deploy 90% cash
+#    - Weekly < -12%: deploy 100% cash (crash)
+#    - RSI < 30:      deploy 60%+
+#    - Momentum filter: halve deploy if deep structural downtrend
+# 4. Harvesting Phase: Same 9Sig Value Averaging + smart surplus retention
+#    - In strong bull momentum: keep 20% of surplus instead of selling all
 #
-# KEY IMPROVEMENTS IN V2:
-# - Fixed weekly return bug (now always tracks last Friday price)
-# - RSI(14) factor for oversold signal
-# - Volatility regime scaling (ATR-based)
-# - 9Sig target paused during bear markets
-# - Sharpe & Sortino ratio in metrics
-# - Calmar ratio in metrics
-# - Better max drawdown calculation
+# KEY IMPROVEMENTS IN V3 vs V2:
+# - Added MA50 for three-regime detection (BEAR/TRANSITION/BULL)
+# - Added momentum score (1M+3M composite) for regime boost and dip quality
+# - Tiered dip-buy fractions (vs binary all-or-nothing in v2)
+# - Momentum-aware profit taking in harvesting mode
+# - Built-in synthetic data generator (no yfinance needed for testing)
+# - Better position sizing discipline: no over-concentration in transition zone
+
+try:
+    import yfinance as yf
+    HAS_YFINANCE = True
+except ImportError:
+    HAS_YFINANCE = False
+
 
 class UltimateWombat:
     def __init__(self, ticker="TQQQ", start_date="2010-01-01"):
@@ -36,48 +46,157 @@ class UltimateWombat:
         self.results = None
         self.income_log = []
 
-    def fetch_data(self):
-        print("⚠️ Fetching fresh data via yfinance...")
-        df = yf.download(self.ticker, start=self.start_date, progress=False)
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = [c[0] for c in df.columns]
-        rename_map = {'Close': 'Adj Close'}
-        df = df.rename(columns=rename_map)
-        self.data = df[['Adj Close']].dropna()
-        print(f"✅ Data Loaded: {len(self.data)} rows.")
+    # ------------------------------------------------------------------
+    # Synthetic Data (for offline testing / CI)
+    # ------------------------------------------------------------------
+    @staticmethod
+    def generate_synthetic_data(n_years=14, seed=42):
+        """Generate synthetic TQQQ-like price series for offline testing.
+        Mimics 3x leveraged ETF: high drift (~35%/yr), high vol (~80%/yr),
+        with occasional large drawdowns.
+        """
+        np.random.seed(seed)
+        n_days = int(n_years * 252)
+        # TQQQ realistic parameters:
+        # Geometric annual return ≈ drift_log - vol²/2 = 0.52 - 0.65²/2 ≈ 30%/yr
+        daily_mu    = 0.52 / 252          # log drift: ~52%/yr
+        daily_sigma = 0.65 / np.sqrt(252) # log vol:   ~65%/yr (realistic 3x ETF)
 
+        prices = [100.0]
+        for i in range(n_days):
+            # Simulate occasional crash days (3–4 per year)
+            if np.random.random() < 0.012:
+                shock = np.random.uniform(-0.25, -0.08)
+            else:
+                shock = np.random.normal(daily_mu, daily_sigma)
+            prices.append(max(prices[-1] * np.exp(shock), 0.01))
+
+        dates = pd.bdate_range(start="2010-01-01", periods=n_days + 1)
+        df = pd.DataFrame({'Adj Close': prices}, index=dates)
+        return df
+
+    # ------------------------------------------------------------------
+    # Data Loading
+    # ------------------------------------------------------------------
+    def fetch_data(self):
+        if HAS_YFINANCE:
+            try:
+                print("⚠️ Fetching fresh data via yfinance...")
+                df = yf.download(self.ticker, start=self.start_date, progress=False)
+                if isinstance(df.columns, pd.MultiIndex):
+                    df.columns = [c[0] for c in df.columns]
+                df = df.rename(columns={'Close': 'Adj Close'})
+                self.data = df[['Adj Close']].dropna()
+                print(f"✅ Data Loaded: {len(self.data)} rows.")
+                return
+            except Exception as e:
+                print(f"⚠️ yfinance failed ({e}), falling back to synthetic data.")
+
+        print("📊 Using synthetic TQQQ-like data...")
+        self.data = self.generate_synthetic_data()
+        print(f"✅ Synthetic Data: {len(self.data)} rows.")
+
+    # ------------------------------------------------------------------
+    # Indicators
+    # ------------------------------------------------------------------
     def _compute_indicators(self, prices):
-        """Compute MA200, RSI(14), and ATR-based volatility regime."""
+        """Compute MA50, MA200, RSI(14), volatility, and momentum score."""
         ma200 = prices.rolling(200).mean()
+        ma50  = prices.rolling(50).mean()
 
         # RSI(14)
         delta = prices.diff()
-        gain = delta.clip(lower=0).rolling(14).mean()
-        loss = (-delta.clip(upper=0)).rolling(14).mean()
-        rs = gain / loss.replace(0, np.nan)
-        rsi = 100 - (100 / (1 + rs))
+        gain  = delta.clip(lower=0).rolling(14).mean()
+        loss  = (-delta.clip(upper=0)).rolling(14).mean()
+        rs    = gain / loss.replace(0, np.nan)
+        rsi   = 100 - (100 / (1 + rs))
 
         # Volatility: 20-day rolling std of daily returns (annualized)
         daily_ret = prices.pct_change()
         vol20 = daily_ret.rolling(20).std() * np.sqrt(252)
 
-        return ma200, rsi, vol20
+        # Momentum: 1-month (21d) + 3-month (63d) weighted composite
+        mom_1m = prices.pct_change(21)
+        mom_3m = prices.pct_change(63)
+        mom_score = 0.35 * mom_1m + 0.65 * mom_3m  # 3M weighted higher
 
-    def _vol_adjusted_equity_ratio(self, base_ratio, vol, vol_low=0.50, vol_high=1.20):
+        return ma200, ma50, rsi, vol20, mom_score
+
+    # ------------------------------------------------------------------
+    # Regime-Aware Equity Ratio
+    # ------------------------------------------------------------------
+    def _regime_equity_ratio(self, price, ma50, ma200, base_ratio, vol, mom,
+                              vol_low=0.50, vol_high=1.20):
         """
-        Scale equity ratio down in high-volatility regimes.
-        Below vol_low  -> full base_ratio
-        Above vol_high -> reduce to 60% of base_ratio
-        Linear interpolation in between.
+        Three-regime system:
+        - BEAR        (price < MA200)             → 0% (full cash)
+        - TRANSITION  (price > MA200, MA50 < MA200) → 55% of base (cautious)
+        - BULL_CONFIRMED (price > MA200, MA50 > MA200) → base ± momentum boost
+
+        Then apply volatility scaling on top.
         """
-        if pd.isna(vol) or vol <= vol_low:
+        if pd.isna(ma200) or pd.isna(ma50):
             return base_ratio
-        elif vol >= vol_high:
-            return base_ratio * 0.60
-        else:
-            t = (vol - vol_low) / (vol_high - vol_low)
-            return base_ratio * (1 - 0.40 * t)
 
+        if price < ma200:
+            return 0.0  # BEAR
+
+        if ma50 < ma200:
+            # TRANSITION: scale back sharply
+            ratio = base_ratio * 0.55
+        else:
+            # BULL_CONFIRMED
+            if not pd.isna(mom) and mom > 0.15:
+                # Strong momentum → slight overweight (cap at 90%)
+                ratio = min(base_ratio * 1.10, 0.90)
+            else:
+                ratio = base_ratio
+
+        # Volatility scaling (applies on top of regime ratio)
+        if not pd.isna(vol):
+            if vol >= vol_high:
+                ratio *= 0.60
+            elif vol > vol_low:
+                t = (vol - vol_low) / (vol_high - vol_low)
+                ratio *= (1.0 - 0.40 * t)
+
+        return ratio
+
+    # ------------------------------------------------------------------
+    # Tiered Dip-Buy Fraction
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _dip_buy_fraction(weekly_ret, rsi, mom_score):
+        """
+        Tiered cash deployment based on dip quality.
+        Returns fraction [0, 1] of available cash to deploy.
+        """
+        fraction = 0.0
+
+        # Tier 1: Weekly return dip
+        if weekly_ret < -0.03:
+            fraction = max(fraction, 0.70)
+        if weekly_ret < -0.07:
+            fraction = max(fraction, 0.90)
+        if weekly_ret < -0.12:
+            fraction = max(fraction, 1.00)  # Crash: all-in
+
+        # Tier 2: RSI oversold
+        if not pd.isna(rsi):
+            if rsi < 30:
+                fraction = max(fraction, 0.60)
+            if rsi < 20:
+                fraction = max(fraction, 0.85)
+
+        # Momentum quality filter: avoid catching knives in deep structural downtrend
+        if fraction > 0 and not pd.isna(mom_score) and mom_score < -0.30:
+            fraction *= 0.50
+
+        return min(fraction, 1.0)
+
+    # ------------------------------------------------------------------
+    # Backtest Engine
+    # ------------------------------------------------------------------
     def run_backtest(self,
                      initial_capital=10000,
                      weekly_deposit=1000,
@@ -89,29 +208,31 @@ class UltimateWombat:
             self.fetch_data()
 
         prices = self.data['Adj Close']
-        ma200, rsi, vol20 = self._compute_indicators(prices)
+        ma200, ma50, rsi, vol20, mom_score = self._compute_indicators(prices)
 
-        cash = initial_capital
+        cash   = initial_capital
         shares = 0
-        mode = "ACCUMULATION"
+        mode   = "ACCUMULATION"
         quarterly_target = 0.0
 
         dates = prices.index
-        portfolio_values = []
-        daily_returns_list = []
+        portfolio_values    = []
+        daily_returns_list  = []
 
         last_friday_price = prices.iloc[0]
-        last_month = dates[0].month
-        all_time_high = initial_capital
+        last_month        = dates[0].month
+        all_time_high     = initial_capital
 
         for i in range(len(dates)):
-            date = dates[i]
+            date  = dates[i]
             price = prices.iloc[i]
-            ma = ma200.iloc[i]
-            r = rsi.iloc[i]
-            v = vol20.iloc[i]
+            ma200_v = ma200.iloc[i]
+            ma50_v  = ma50.iloc[i]
+            r    = rsi.iloc[i]
+            v    = vol20.iloc[i]
+            mom  = mom_score.iloc[i]
 
-            is_bear = (i >= 200 and not pd.isna(ma) and price < ma)
+            is_bear  = (i >= 200 and not pd.isna(ma200_v) and price < ma200_v)
             total_val = cash + shares * price
 
             # Update ATH
@@ -127,11 +248,11 @@ class UltimateWombat:
 
             is_friday = (date.weekday() == 4)
 
-            # --- Weekly DCA ---
+            # --- Weekly DCA (deposit even in bear, accumulates as cash) ---
             if is_friday and weekly_deposit > 0:
                 cash += weekly_deposit
 
-            # --- Quarter boundary ---
+            # --- Quarter boundary (first trading day of Jan/Apr/Jul/Oct) ---
             is_quarter_start = (
                 i > 0
                 and date.month != last_month
@@ -139,91 +260,90 @@ class UltimateWombat:
             )
 
             if is_bear:
-                # ==== BEAR MODE ====
+                # ==== BEAR MODE: exit to 100% cash ====
                 if shares > 0:
                     cash += shares * price
                     shares = 0
-                # Harvesting: do NOT advance quarterly target
 
             else:
-                # ==== BULL MODE ====
-                eq_ratio = self._vol_adjusted_equity_ratio(base_equity_ratio, v)
+                # ==== BULL / TRANSITION MODE ====
+                eq_ratio = self._regime_equity_ratio(
+                    price, ma50_v, ma200_v, base_equity_ratio, v, mom
+                )
 
                 if mode == "ACCUMULATION":
-                    # 3Q Dip Logic
+                    # --- Weekly dip buy ---
                     if is_friday:
                         weekly_ret = (price - last_friday_price) / last_friday_price
+                        frac = self._dip_buy_fraction(weekly_ret, r, mom)
+                        if frac > 0 and cash > 0:
+                            deploy = cash * frac
+                            shares += deploy / price
+                            cash   -= deploy
 
-                        if weekly_ret < -0.03:
-                            # Standard dip buy: deploy all available cash
-                            if cash > 0:
-                                shares += cash / price
-                                cash = 0
-                        elif not pd.isna(r) and r < 30:
-                            # RSI Oversold Boost: deploy 50% of cash
-                            deploy = cash * 0.50
-                            if deploy > 0:
-                                shares += deploy / price
-                                cash -= deploy
-
-                    # Quarterly Rebalance to target ratio
+                    # --- Quarterly rebalance ---
                     if is_quarter_start:
+                        total_val = cash + shares * price
                         target_equity = total_val * eq_ratio
                         diff = target_equity - shares * price
                         if diff > 0:
                             buy = min(diff, cash)
                             shares += buy / price
-                            cash -= buy
+                            cash   -= buy
                         elif diff < 0:
                             sell_val = abs(diff)
-                            shares -= sell_val / price
-                            cash += sell_val
+                            shares  -= sell_val / price
+                            cash    += sell_val
 
                 elif mode == "HARVESTING":
                     if is_quarter_start:
-                        # Advance target
                         quarterly_target *= (1 + quarterly_growth)
+                        total_val = cash + shares * price
 
-                        # Drawdown guard: skip harvesting if >15% below ATH
                         dd_from_ath = (total_val - all_time_high) / all_time_high
                         if dd_from_ath > -0.15:
                             diff = quarterly_target - total_val
                             if diff < 0:
-                                # Surplus -> sell for income
+                                # Surplus → extract income
                                 sell_val = abs(diff)
+                                # Momentum-aware: in strong bull, keep 20% extra
+                                if not pd.isna(mom) and mom > 0.20:
+                                    sell_val *= 0.80
                                 shares_to_sell = sell_val / price
                                 if shares >= shares_to_sell:
                                     shares -= shares_to_sell
+                                    cash   += sell_val
                                     self.income_log.append((date, sell_val))
-                                    # Income extracted from portfolio
                                 else:
                                     income = shares * price
+                                    cash += income
                                     self.income_log.append((date, income))
                                     shares = 0
                             elif diff > 0:
-                                # Shortfall -> buy
+                                # Shortfall → buy in
                                 buy = min(diff, cash)
                                 shares += buy / price
-                                cash -= buy
+                                cash   -= buy
 
             pv = cash + shares * price
             portfolio_values.append(pv)
 
-            # Daily return for Sharpe/Sortino
             if i > 0:
                 prev_pv = portfolio_values[-2]
                 daily_returns_list.append((pv - prev_pv) / prev_pv if prev_pv > 0 else 0)
 
-            # Always update last friday price on Fridays (BUG FIX)
             if is_friday:
                 last_friday_price = price
 
             last_month = date.month
 
-        self.results = pd.Series(portfolio_values, index=dates)
+        self.results       = pd.Series(portfolio_values, index=dates)
         self._daily_returns = pd.Series(daily_returns_list)
         return self.results
 
+    # ------------------------------------------------------------------
+    # Metrics Report
+    # ------------------------------------------------------------------
     def show_metrics(self):
         if self.results is None:
             return
@@ -232,23 +352,23 @@ class UltimateWombat:
         final_val = r.iloc[-1]
         start_val = r.iloc[0]
         years = (r.index[-1] - r.index[0]).days / 365.25
-        cagr = (final_val / start_val) ** (1 / years) - 1
+        cagr  = (final_val / start_val) ** (1 / years) - 1
 
-        peak = r.cummax()
-        dd = (r - peak) / peak
+        peak  = r.cummax()
+        dd    = (r - peak) / peak
         max_dd = dd.min()
 
         total_income = sum(x[1] for x in self.income_log)
 
         dr = self._daily_returns
-        rf_daily = 0.045 / 252  # 4.5% risk-free rate
-        excess = dr - rf_daily
-        sharpe = (excess.mean() / dr.std()) * np.sqrt(252) if dr.std() > 0 else 0
+        rf_daily = 0.045 / 252
+        excess  = dr - rf_daily
+        sharpe  = (excess.mean() / dr.std()) * np.sqrt(252) if dr.std() > 0 else 0
         downside = dr[dr < 0].std()
         sortino = (excess.mean() / downside) * np.sqrt(252) if downside > 0 else 0
-        calmar = cagr / abs(max_dd) if max_dd != 0 else 0
+        calmar  = cagr / abs(max_dd) if max_dd != 0 else 0
 
-        print("\n📊 === ULTIMATE WOMBAT REPORT v2.0 🐻 ===")
+        print("\n📊 === ULTIMATE WOMBAT REPORT v3.0 🐻 ===")
         print(f"💰 Final Portfolio:     ${final_val:>15,.2f}")
         print(f"💸 Total Income:        ${total_income:>15,.2f}")
         print(f"📈 CAGR:               {cagr*100:>14.2f}%")
@@ -259,7 +379,14 @@ class UltimateWombat:
         print(f"💵 Income Events:       {len(self.income_log):>14d}")
         print("==========================================")
 
+        return {
+            'cagr': cagr, 'max_dd': max_dd,
+            'sharpe': sharpe, 'sortino': sortino, 'calmar': calmar,
+        }
+
+
 if __name__ == "__main__":
     bot = UltimateWombat()
+    bot.fetch_data()
     bot.run_backtest(switch_threshold=1_000_000)
     bot.show_metrics()
