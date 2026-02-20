@@ -1,0 +1,140 @@
+[
+  {
+    "name": "DM_6m_monthly",
+    "full": {
+      "CAGR": 0.3554,
+      "MaxDD": -0.7423,
+      "Sharpe": 0.7413,
+      "Calmar": 0.4787
+    },
+    "is": {
+      "CAGR": 0.4205,
+      "MaxDD": -0.5862,
+      "Sharpe": 0.8388,
+      "Calmar": 0.7173
+    },
+    "oos": {
+      "CAGR": 0.2686,
+      "MaxDD": -0.7423,
+      "Sharpe": 0.6379,
+      "Calmar": 0.3618
+    },
+    "wf_pass": true,
+    "composite": 0.5591
+  },
+  {
+    "name": "DM_3m_monthly",
+    "full": {
+      "CAGR": 0.3438,
+      "MaxDD": -0.6496,
+      "Sharpe": 0.7299,
+      "Calmar": 0.5293
+    },
+    "is": {
+      "CAGR": 0.2442,
+      "MaxDD": -0.6496,
+      "Sharpe": 0.6079,
+      "Calmar": 0.3759
+    },
+    "oos": {
+      "CAGR": 0.5031,
+      "MaxDD": -0.6318,
+      "Sharpe": 0.8787,
+      "Calmar": 0.7963
+    },
+    "wf_pass": true,
+    "composite": 0.5724
+  },
+  {
+    "name": "DM_blend_monthly",
+    "full": {
+      "CAGR": 0.2979,
+      "MaxDD": -0.6312,
+      "Sharpe": 0.6745,
+      "Calmar": 0.4721
+    },
+    "is": {
+      "CAGR": 0.2577,
+      "MaxDD": -0.6312,
+      "Sharpe": 0.6295,
+      "Calmar": 0.4083
+    },
+    "oos": {
+      "CAGR": 0.3569,
+      "MaxDD": -0.6177,
+      "Sharpe": 0.7353,
+      "Calmar": 0.5778
+    },
+    "wf_pass": true,
+    "composite": 0.5182
+  },
+  {
+    "name": "DM_6m_weekly",
+    "full": {
+      "CAGR": 0.3413,
+      "MaxDD": -0.6935,
+      "Sharpe": 0.7263,
+      "Calmar": 0.4921
+    },
+    "is": {
+      "CAGR": 0.3649,
+      "MaxDD": -0.6366,
+      "Sharpe": 0.7741,
+      "Calmar": 0.5732
+    },
+    "oos": {
+      "CAGR": 0.3086,
+      "MaxDD": -0.6935,
+      "Sharpe": 0.6813,
+      "Calmar": 0.4449
+    },
+    "wf_pass": true,
+    "composite": 0.5556
+  },
+  {
+    "name": "DM_6m_sma_monthly",
+    "full": {
+      "CAGR": 0.2966,
+      "MaxDD": -0.8386,
+      "Sharpe": 0.6735,
+      "Calmar": 0.3537
+    },
+    "is": {
+      "CAGR": 0.3258,
+      "MaxDD": -0.8386,
+      "Sharpe": 0.7155,
+      "Calmar": 0.3886
+    },
+    "oos": {
+      "CAGR": 0.4519,
+      "MaxDD": -0.6177,
+      "Sharpe": 0.8387,
+      "Calmar": 0.7316
+    },
+    "wf_pass": true,
+    "composite": 0.4702
+  },
+  {
+    "name": "DM_3m_sma_weekly",
+    "full": {
+      "CAGR": 0.3677,
+      "MaxDD": -0.593,
+      "Sharpe": 0.7694,
+      "Calmar": 0.62
+    },
+    "is": {
+      "CAGR": 0.2593,
+      "MaxDD": -0.593,
+      "Sharpe": 0.6344,
+      "Calmar": 0.4372
+    },
+    "oos": {
+      "CAGR": 0.4525,
+      "MaxDD": -0.6174,
+      "Sharpe": 0.8414,
+      "Calmar": 0.7329
+    },
+    "wf_pass": true,
+    "composite": 0.6293
+  }
+]

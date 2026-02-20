@@ -1,0 +1,224 @@
+[
+  {
+    "name": "v1_baseline",
+    "params": {
+      "sma_period": 200,
+      "bull_enter": 1.05,
+      "bear_enter": 0.9,
+      "bear_floor": 0.3,
+      "rebalance_freq": 5,
+      "defense_mode": "none"
+    },
+    "full": {
+      "CAGR": 0.3727,
+      "MaxDD": -0.6725,
+      "Sharpe": 0.7824,
+      "Calmar": 0.5542,
+      "WinRate": 0.5567,
+      "Vol": 0.5546
+    },
+    "is": {
+      "CAGR": 0.331,
+      "MaxDD": -0.6725,
+      "Sharpe": 0.7455,
+      "Calmar": 0.4922,
+      "WinRate": 0.566,
+      "Vol": 0.5101
+    },
+    "oos": {
+      "CAGR": 0.5489,
+      "MaxDD": -0.4751,
+      "Sharpe": 0.9574,
+      "Calmar": 1.1553,
+      "WinRate": 0.5419,
+      "Vol": 0.6165
+    },
+    "wf_pass": true,
+    "composite": 0.6092
+  },
+  {
+    "name": "v3a_mom_best",
+    "params": {
+      "sma_period": 200,
+      "bull_enter": 1.05,
+      "bear_enter": 0.9,
+      "bear_floor": 0.3,
+      "rebalance_freq": 5,
+      "defense_mode": "momentum"
+    },
+    "full": {
+      "CAGR": 0.3784,
+      "MaxDD": -0.6735,
+      "Sharpe": 0.79,
+      "Calmar": 0.5618,
+      "WinRate": 0.557,
+      "Vol": 0.5543
+    },
+    "is": {
+      "CAGR": 0.3276,
+      "MaxDD": -0.6735,
+      "Sharpe": 0.7414,
+      "Calmar": 0.4864,
+      "WinRate": 0.5655,
+      "Vol": 0.508
+    },
+    "oos": {
+      "CAGR": 0.5611,
+      "MaxDD": -0.4849,
+      "Sharpe": 0.9692,
+      "Calmar": 1.1572,
+      "WinRate": 0.5419,
+      "Vol": 0.6182
+    },
+    "wf_pass": true,
+    "composite": 0.6164
+  },
+  {
+    "name": "v3b_always_split",
+    "params": {
+      "sma_period": 200,
+      "bull_enter": 1.05,
+      "bear_enter": 0.9,
+      "bear_floor": 0.3,
+      "rebalance_freq": 5,
+      "defense_mode": "always_split"
+    },
+    "full": {
+      "CAGR": 0.3801,
+      "MaxDD": -0.6795,
+      "Sharpe": 0.7918,
+      "Calmar": 0.5594,
+      "WinRate": 0.5597,
+      "Vol": 0.5554
+    },
+    "is": {
+      "CAGR": 0.3493,
+      "MaxDD": -0.6795,
+      "Sharpe": 0.7729,
+      "Calmar": 0.514,
+      "WinRate": 0.5655,
+      "Vol": 0.5089
+    },
+    "oos": {
+      "CAGR": 0.5344,
+      "MaxDD": -0.5399,
+      "Sharpe": 0.9405,
+      "Calmar": 0.9899,
+      "WinRate": 0.5461,
+      "Vol": 0.6196
+    },
+    "wf_pass": true,
+    "composite": 0.6165
+  },
+  {
+    "name": "v3c_mom_split",
+    "params": {
+      "sma_period": 200,
+      "bull_enter": 1.05,
+      "bear_enter": 0.9,
+      "bear_floor": 0.3,
+      "rebalance_freq": 5,
+      "defense_mode": "split"
+    },
+    "full": {
+      "CAGR": 0.378,
+      "MaxDD": -0.6806,
+      "Sharpe": 0.7897,
+      "Calmar": 0.5554,
+      "WinRate": 0.5579,
+      "Vol": 0.5541
+    },
+    "is": {
+      "CAGR": 0.3367,
+      "MaxDD": -0.6806,
+      "Sharpe": 0.7545,
+      "Calmar": 0.4946,
+      "WinRate": 0.5671,
+      "Vol": 0.5087
+    },
+    "oos": {
+      "CAGR": 0.5478,
+      "MaxDD": -0.4798,
+      "Sharpe": 0.9559,
+      "Calmar": 1.1417,
+      "WinRate": 0.5391,
+      "Vol": 0.617
+    },
+    "wf_pass": true,
+    "composite": 0.6136
+  },
+  {
+    "name": "v3d_wide_mom",
+    "params": {
+      "sma_period": 200,
+      "bull_enter": 1.08,
+      "bear_enter": 0.87,
+      "bear_floor": 0.25,
+      "rebalance_freq": 5,
+      "defense_mode": "momentum"
+    },
+    "full": {
+      "CAGR": 0.3861,
+      "MaxDD": -0.6742,
+      "Sharpe": 0.8022,
+      "Calmar": 0.5728,
+      "WinRate": 0.5537,
+      "Vol": 0.5499
+    },
+    "is": {
+      "CAGR": 0.3136,
+      "MaxDD": -0.6742,
+      "Sharpe": 0.7211,
+      "Calmar": 0.4651,
+      "WinRate": 0.5608,
+      "Vol": 0.5066
+    },
+    "oos": {
+      "CAGR": 0.581,
+      "MaxDD": -0.4943,
+      "Sharpe": 0.9954,
+      "Calmar": 1.1754,
+      "WinRate": 0.5433,
+      "Vol": 0.6095
+    },
+    "wf_pass": true,
+    "composite": 0.6272
+  },
+  {
+    "name": "v3e_hfloor_mom",
+    "params": {
+      "sma_period": 200,
+      "bull_enter": 1.05,
+      "bear_enter": 0.9,
+      "bear_floor": 0.4,
+      "rebalance_freq": 5,
+      "defense_mode": "momentum"
+    },
+    "full": {
+      "CAGR": 0.3909,
+      "MaxDD": -0.673,
+      "Sharpe": 0.8036,
+      "Calmar": 0.5808,
+      "WinRate": 0.5576,
+      "Vol": 0.5604
+    },
+    "is": {
+      "CAGR": 0.344,
+      "MaxDD": -0.673,
+      "Sharpe": 0.7627,
+      "Calmar": 0.5111,
+      "WinRate": 0.5676,
+      "Vol": 0.5139
+    },
+    "oos": {
+      "CAGR": 0.5524,
+      "MaxDD": -0.5304,
+      "Sharpe": 0.9563,
+      "Calmar": 1.0415,
+      "WinRate": 0.5398,
+      "Vol": 0.625
+    },
+    "wf_pass": true,
+    "composite": 0.6319
+  }
+]

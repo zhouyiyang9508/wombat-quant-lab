@@ -1,0 +1,140 @@
+[
+  {
+    "name": "v8_baseline",
+    "full": {
+      "CAGR": 0.4104,
+      "MaxDD": -0.6185,
+      "Sharpe": 0.8634,
+      "Calmar": 0.6635
+    },
+    "is": {
+      "CAGR": 0.3676,
+      "MaxDD": -0.6185,
+      "Sharpe": 0.824,
+      "Calmar": 0.5942
+    },
+    "oos": {
+      "CAGR": 0.4708,
+      "MaxDD": -0.4606,
+      "Sharpe": 0.9144,
+      "Calmar": 1.0221
+    },
+    "wf_pass": true,
+    "composite": 0.6928
+  },
+  {
+    "name": "v9a_gld_bear",
+    "full": {
+      "CAGR": 0.4442,
+      "MaxDD": -0.6282,
+      "Sharpe": 0.9086,
+      "Calmar": 0.7071
+    },
+    "is": {
+      "CAGR": 0.4035,
+      "MaxDD": -0.6282,
+      "Sharpe": 0.8777,
+      "Calmar": 0.6423
+    },
+    "oos": {
+      "CAGR": 0.5014,
+      "MaxDD": -0.4756,
+      "Sharpe": 0.9498,
+      "Calmar": 1.0542
+    },
+    "wf_pass": true,
+    "composite": 0.7351
+  },
+  {
+    "name": "v9b_wide_gld",
+    "full": {
+      "CAGR": 0.426,
+      "MaxDD": -0.6258,
+      "Sharpe": 0.8872,
+      "Calmar": 0.6807
+    },
+    "is": {
+      "CAGR": 0.3764,
+      "MaxDD": -0.6258,
+      "Sharpe": 0.8407,
+      "Calmar": 0.6014
+    },
+    "oos": {
+      "CAGR": 0.4963,
+      "MaxDD": -0.4585,
+      "Sharpe": 0.9468,
+      "Calmar": 1.0825
+    },
+    "wf_pass": true,
+    "composite": 0.7124
+  },
+  {
+    "name": "v9c_always10",
+    "full": {
+      "CAGR": 0.4225,
+      "MaxDD": -0.5981,
+      "Sharpe": 0.9093,
+      "Calmar": 0.7064
+    },
+    "is": {
+      "CAGR": 0.3791,
+      "MaxDD": -0.5981,
+      "Sharpe": 0.8716,
+      "Calmar": 0.6338
+    },
+    "oos": {
+      "CAGR": 0.4837,
+      "MaxDD": -0.4498,
+      "Sharpe": 0.9586,
+      "Calmar": 1.0753
+    },
+    "wf_pass": true,
+    "composite": 0.7308
+  },
+  {
+    "name": "v9d_hfloor_gld",
+    "full": {
+      "CAGR": 0.4429,
+      "MaxDD": -0.6305,
+      "Sharpe": 0.9043,
+      "Calmar": 0.7024
+    },
+    "is": {
+      "CAGR": 0.4104,
+      "MaxDD": -0.6305,
+      "Sharpe": 0.886,
+      "Calmar": 0.6509
+    },
+    "oos": {
+      "CAGR": 0.4882,
+      "MaxDD": -0.5113,
+      "Sharpe": 0.9307,
+      "Calmar": 0.9549
+    },
+    "wf_pass": true,
+    "composite": 0.7312
+  },
+  {
+    "name": "v9e_narrow_gld",
+    "full": {
+      "CAGR": 0.4183,
+      "MaxDD": -0.6282,
+      "Sharpe": 0.871,
+      "Calmar": 0.666
+    },
+    "is": {
+      "CAGR": 0.3689,
+      "MaxDD": -0.6282,
+      "Sharpe": 0.8235,
+      "Calmar": 0.5872
+    },
+    "oos": {
+      "CAGR": 0.4885,
+      "MaxDD": -0.4663,
+      "Sharpe": 0.9317,
+      "Calmar": 1.0476
+    },
+    "wf_pass": true,
+    "composite": 0.6984
+  }
+]

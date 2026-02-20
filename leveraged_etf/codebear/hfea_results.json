@@ -1,0 +1,236 @@
+[
+  {
+    "name": "HFEA_55_45_Q",
+    "full": {
+      "CAGR": 0.2544,
+      "MaxDD": -0.7762,
+      "Sharpe": 0.7117,
+      "Calmar": 0.3278,
+      "Vol": 0.35
+    },
+    "is": {
+      "CAGR": 0.4136,
+      "MaxDD": -0.4234,
+      "Sharpe": 1.2384,
+      "Calmar": 0.9769,
+      "Vol": 0.2799
+    },
+    "oos": {
+      "CAGR": 0.0488,
+      "MaxDD": -0.7762,
+      "Sharpe": 0.237,
+      "Calmar": 0.0628,
+      "Vol": 0.4343
+    },
+    "wf_pass": false,
+    "composite": 0.4667
+  },
+  {
+    "name": "HFEA_55_45_M",
+    "full": {
+      "CAGR": 0.2426,
+      "MaxDD": -0.77,
+      "Sharpe": 0.6828,
+      "Calmar": 0.3151,
+      "Vol": 0.3519
+    },
+    "is": {
+      "CAGR": 0.4033,
+      "MaxDD": -0.4418,
+      "Sharpe": 1.2019,
+      "Calmar": 0.9129,
+      "Vol": 0.2831
+    },
+    "oos": {
+      "CAGR": 0.0355,
+      "MaxDD": -0.77,
+      "Sharpe": 0.2078,
+      "Calmar": 0.0461,
+      "Vol": 0.4349
+    },
+    "wf_pass": false,
+    "composite": 0.4477
+  },
+  {
+    "name": "HFEA_60_40_M",
+    "full": {
+      "CAGR": 0.2665,
+      "MaxDD": -0.7735,
+      "Sharpe": 0.7197,
+      "Calmar": 0.3445,
+      "Vol": 0.369
+    },
+    "is": {
+      "CAGR": 0.4219,
+      "MaxDD": -0.4595,
+      "Sharpe": 1.1949,
+      "Calmar": 0.9182,
+      "Vol": 0.3
+    },
+    "oos": {
+      "CAGR": 0.0647,
+      "MaxDD": -0.7735,
+      "Sharpe": 0.2788,
+      "Calmar": 0.0837,
+      "Vol": 0.453
+    },
+    "wf_pass": false,
+    "composite": 0.479
+  },
+  {
+    "name": "HFEA_70_30_M",
+    "full": {
+      "CAGR": 0.3115,
+      "MaxDD": -0.7809,
+      "Sharpe": 0.7694,
+      "Calmar": 0.3989,
+      "Vol": 0.4134
+    },
+    "is": {
+      "CAGR": 0.4545,
+      "MaxDD": -0.5144,
+      "Sharpe": 1.1445,
+      "Calmar": 0.8837,
+      "Vol": 0.3464
+    },
+    "oos": {
+      "CAGR": 0.123,
+      "MaxDD": -0.7809,
+      "Sharpe": 0.4036,
+      "Calmar": 0.1575,
+      "Vol": 0.4971
+    },
+    "wf_pass": false,
+    "composite": 0.5296
+  },
+  {
+    "name": "HFEA_trend_70_30",
+    "full": {
+      "CAGR": 0.2399,
+      "MaxDD": -0.7811,
+      "Sharpe": 0.659,
+      "Calmar": 0.3071,
+      "Vol": 0.3739
+    },
+    "is": {
+      "CAGR": 0.3707,
+      "MaxDD": -0.5262,
+      "Sharpe": 1.0419,
+      "Calmar": 0.7044,
+      "Vol": 0.3128
+    },
+    "oos": {
+      "CAGR": 0.0819,
+      "MaxDD": -0.7811,
+      "Sharpe": 0.3119,
+      "Calmar": 0.1048,
+      "Vol": 0.4435
+    },
+    "wf_pass": false,
+    "composite": 0.4344
+  },
+  {
+    "name": "HFEA_trend_80_20",
+    "full": {
+      "CAGR": 0.2483,
+      "MaxDD": -0.7958,
+      "Sharpe": 0.6521,
+      "Calmar": 0.3121,
+      "Vol": 0.4116
+    },
+    "is": {
+      "CAGR": 0.3611,
+      "MaxDD": -0.5761,
+      "Sharpe": 0.9336,
+      "Calmar": 0.6269,
+      "Vol": 0.3587
+    },
+    "oos": {
+      "CAGR": 0.1099,
+      "MaxDD": -0.7958,
+      "Sharpe": 0.3756,
+      "Calmar": 0.1381,
+      "Vol": 0.4741
+    },
+    "wf_pass": false,
+    "composite": 0.4353
+  },
+  {
+    "name": "HFEA_mom_70_30",
+    "full": {
+      "CAGR": 0.1849,
+      "MaxDD": -0.8504,
+      "Sharpe": 0.5342,
+      "Calmar": 0.2174,
+      "Vol": 0.381
+    },
+    "is": {
+      "CAGR": 0.3162,
+      "MaxDD": -0.4202,
+      "Sharpe": 0.9024,
+      "Calmar": 0.7525,
+      "Vol": 0.3175
+    },
+    "oos": {
+      "CAGR": 0.0271,
+      "MaxDD": -0.8504,
+      "Sharpe": 0.2003,
+      "Calmar": 0.0319,
+      "Vol": 0.4531
+    },
+    "wf_pass": false,
+    "composite": 0.3376
+  },
+  {
+    "name": "HFEA_mom_80_20",
+    "full": {
+      "CAGR": 0.1664,
+      "MaxDD": -0.8858,
+      "Sharpe": 0.4851,
+      "Calmar": 0.1879,
+      "Vol": 0.4186
+    },
+    "is": {
+      "CAGR": 0.2817,
+      "MaxDD": -0.4524,
+      "Sharpe": 0.7636,
+      "Calmar": 0.6228,
+      "Vol": 0.359
+    },
+    "oos": {
+      "CAGR": 0.0262,
+      "MaxDD": -0.8858,
+      "Sharpe": 0.2183,
+      "Calmar": 0.0295,
+      "Vol": 0.488
+    },
+    "wf_pass": false,
+    "composite": 0.3025
+  },
+  {
+    "name": "HFEA_55_band5",
+    "full": {
+      "CAGR": 0.2578,
+      "MaxDD": -0.7513,
+      "Sharpe": 0.7131,
+      "Calmar": 0.3431,
+      "Vol": 0.356
+    },
+    "is": {
+      "CAGR": 0.4077,
+      "MaxDD": -0.4613,
+      "Sharpe": 1.1885,
+      "Calmar": 0.8838,
+      "Vol": 0.2907
+    },
+    "oos": {
+      "CAGR": 0.0625,
+      "MaxDD": -0.7513,
+      "Sharpe": 0.2672,
+      "Calmar": 0.0831,
+      "Vol": 0.4357
+    },
+    "wf_pass": false,
+    "composite": 0.4741
+  }
+]
