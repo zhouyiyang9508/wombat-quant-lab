@@ -111,13 +111,13 @@ def strategy_btc_only_v7f(btc_close, gld_close, dates):
         btc_ret = btc_close[i] / btc_close[i-1] - 1
         gld_ret = gld_close[i] / gld_close[i-1] - 1
         
-        # 3M and 6M momentum
+        # 3M and 6M momentum — FIX: use close[i-1] to avoid look-ahead bias
         lb3 = min(i, 63)
         lb6 = min(i, 126)
-        btc_mom3 = btc_close[i] / btc_close[max(0, i-lb3)] - 1
-        btc_mom6 = btc_close[i] / btc_close[max(0, i-lb6)] - 1
-        gld_mom3 = gld_close[i] / gld_close[max(0, i-lb3)] - 1
-        gld_mom6 = gld_close[i] / gld_close[max(0, i-lb6)] - 1
+        btc_mom3 = btc_close[i-1] / btc_close[max(0, i-1-lb3)] - 1
+        btc_mom6 = btc_close[i-1] / btc_close[max(0, i-1-lb6)] - 1
+        gld_mom3 = gld_close[i-1] / gld_close[max(0, i-1-lb3)] - 1
+        gld_mom6 = gld_close[i-1] / gld_close[max(0, i-1-lb6)] - 1
         
         btc_mom = 0.5 * btc_mom3 + 0.5 * btc_mom6
         gld_mom = 0.5 * gld_mom3 + 0.5 * gld_mom6
@@ -174,12 +174,13 @@ def strategy_crypto_dual_mom(btc_close, eth_close, gld_close, dates):
         eth_ret = eth_close[i] / eth_close[i-1] - 1
         gld_ret = gld_close[i] / gld_close[i-1] - 1
         
+        # FIX: use close[i-1] for momentum to avoid look-ahead bias
         lb3 = min(i, 63)
         lb6 = min(i, 126)
         
-        btc_mom = 0.5 * (btc_close[i]/btc_close[max(0,i-lb3)]-1) + 0.5 * (btc_close[i]/btc_close[max(0,i-lb6)]-1)
-        eth_mom = 0.5 * (eth_close[i]/eth_close[max(0,i-lb3)]-1) + 0.5 * (eth_close[i]/eth_close[max(0,i-lb6)]-1)
-        gld_mom = 0.5 * (gld_close[i]/gld_close[max(0,i-lb3)]-1) + 0.5 * (gld_close[i]/gld_close[max(0,i-lb6)]-1)
+        btc_mom = 0.5 * (btc_close[i-1]/btc_close[max(0,i-1-lb3)]-1) + 0.5 * (btc_close[i-1]/btc_close[max(0,i-1-lb6)]-1)
+        eth_mom = 0.5 * (eth_close[i-1]/eth_close[max(0,i-1-lb3)]-1) + 0.5 * (eth_close[i-1]/eth_close[max(0,i-1-lb6)]-1)
+        gld_mom = 0.5 * (gld_close[i-1]/gld_close[max(0,i-1-lb3)]-1) + 0.5 * (gld_close[i-1]/gld_close[max(0,i-1-lb6)]-1)
         
         crypto_pos = [m > 0 for m in [btc_mom, eth_mom]]
         
@@ -229,10 +230,10 @@ def strategy_crypto_vol_weighted(btc_close, eth_close, gld_close, dates):
         vol_b = np.std(btc_rets[max(1,i-lb):i]) * np.sqrt(365)
         vol_e = np.std(eth_rets[max(1,i-lb):i]) * np.sqrt(365)
         
-        # Momentum
+        # Momentum — FIX: use close[i-1] to avoid look-ahead bias
         lb6 = min(i, 126)
-        btc_mom = btc_close[i] / btc_close[max(0, i-lb6)] - 1
-        eth_mom = eth_close[i] / eth_close[max(0, i-lb6)] - 1
+        btc_mom = btc_close[i-1] / btc_close[max(0, i-1-lb6)] - 1
+        eth_mom = eth_close[i-1] / eth_close[max(0, i-1-lb6)] - 1
         
         # Inverse vol weights for crypto portion
         inv_b = 1/max(vol_b, 0.1)
@@ -268,10 +269,11 @@ def strategy_best_crypto(btc_close, eth_close, gld_close, dates):
         eth_ret = eth_close[i] / eth_close[i-1] - 1
         gld_ret = gld_close[i] / gld_close[i-1] - 1
         
+        # FIX: use close[i-1] for momentum to avoid look-ahead bias
         lb = min(i, 90)
-        btc_mom = btc_close[i] / btc_close[max(0, i-lb)] - 1
-        eth_mom = eth_close[i] / eth_close[max(0, i-lb)] - 1
-        gld_mom = gld_close[i] / gld_close[max(0, i-lb)] - 1
+        btc_mom = btc_close[i-1] / btc_close[max(0, i-1-lb)] - 1
+        eth_mom = eth_close[i-1] / eth_close[max(0, i-1-lb)] - 1
+        gld_mom = gld_close[i-1] / gld_close[max(0, i-1-lb)] - 1
         
         # Best among all three
         moms = {"btc": btc_mom, "eth": eth_mom, "gld": gld_mom}
