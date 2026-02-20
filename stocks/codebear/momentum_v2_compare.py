@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 """
-动量轮动选股策略 v2 — 全面优化探索
+动量轮动选股策略 v2 — 全面优化探索（向量化版本）
 代码熊 🐻
 
-v2a: Regime Filter + Absolute Momentum (bear market protection)
-v2b: Bimonthly Rebalance + Skip-1M Momentum + Patience Filter (low turnover)
-v2c: Sector-Diversified + Vol-Weighted + Regime + Abs Momentum (diversification)
-v2d: Adaptive Regime + Dynamic Size + Sector + Vol (best combo)
-v2e: Conservative Combo (bimonthly + regime + sector + vol)
+v2a: Regime Filter + Absolute Momentum
+v2b: Bimonthly + Skip-1M + Holdover bonus
+v2c: Sector Diversified + Vol-Weighted + Regime
+v2d: Adaptive Regime + Dynamic Size + Sector + Vol
+v2e: Conservative Combo (bimonthly + all filters)
 """
 
-import os, sys, json, time, warnings
+import os, sys, json, warnings
 import numpy as np
 import pandas as pd
-from datetime import datetime
 from pathlib import Path
 from collections import Counter
 
@@ -33,14 +32,13 @@ def load_csv(filepath):
     else:
         df.index = pd.to_datetime(df.index)
         df = df.sort_index()
-    for col in ['Close', 'Volume', 'Open', 'High', 'Low']:
+    for col in ['Close', 'Volume']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
     return df
 
 def load_all_data(tickers):
     close_dict, volume_dict = {}, {}
-    loaded = 0
     for t in tickers:
         f = STOCK_CACHE / f"{t}.csv"
         if not f.exists() or f.stat().st_size < 500:
@@ -51,10 +49,9 @@ def load_all_data(tickers):
                 close_dict[t] = df['Close'].dropna()
                 if 'Volume' in df.columns:
                     volume_dict[t] = df['Volume'].dropna()
-                loaded += 1
         except:
             pass
-    return pd.DataFrame(close_dict), pd.DataFrame(volume_dict), loaded
+    return pd.DataFrame(close_dict), pd.DataFrame(volume_dict), len(close_dict)
 
 def load_sectors():
     sf = CACHE / "sp500_sectors.json"
@@ -63,209 +60,173 @@ def load_sectors():
             return json.load(f)
     return {}
 
-# ─── Momentum Scoring ──────────────────────────────────────────
+# ─── Precompute signals (vectorized) ───────────────────────────
 
-def compute_momentum_scores(close_df, volume_df, date, 
-                            weights=(0.25, 0.40, 0.35, 0.0),
-                            skip_recent_month=False,
-                            min_price=5.0, min_history=130):
-    """
-    Compute momentum scores for all stocks as of `date`.
-    weights: (1M, 3M, 6M, 12M) momentum weights.
-    skip_recent_month: if True, use prices from 22 days ago as "current" price.
-    """
-    scores = {}
-    for ticker in close_df.columns:
-        if ticker == 'SPY':
-            continue
-        try:
-            prices = close_df[ticker].loc[:date].dropna()
-            if len(prices) < max(min_history, 252):
-                continue
-            
-            p = prices.values
-            n = len(p)
-            
-            # Current price reference
-            if skip_recent_month and n > 22:
-                ref_idx = -22  # Skip most recent month
-            else:
-                ref_idx = -1
-            
-            current_price = p[ref_idx] if ref_idx == -1 else p[-1]
-            if np.isnan(current_price) or current_price < min_price:
-                continue
-            
-            # Volume filter
-            if ticker in volume_df.columns:
-                vol = volume_df[ticker].loc[:date].dropna()
-                if len(vol) >= 20:
-                    vol_20 = vol.iloc[-20:].mean()
-                    if vol.iloc[-1] < vol_20 * 0.3:
-                        continue
-            
-            # Momentum returns
-            w1m, w3m, w6m, w12m = weights
-            
-            if skip_recent_month:
-                # Skip recent month: all lookbacks measured from 22 days ago
-                base = n - 22
-                ret_1m = p[base] / p[base - 22] - 1 if base > 22 else np.nan
-                ret_3m = p[base] / p[base - 63] - 1 if base > 63 else np.nan
-                ret_6m = p[base] / p[base - 126] - 1 if base > 126 else np.nan
-                ret_12m = p[base] / p[base - 252] - 1 if base > 252 else np.nan
-            else:
-                ret_1m = p[-1] / p[-22] - 1 if n > 22 else np.nan
-                ret_3m = p[-1] / p[-63] - 1 if n > 63 else np.nan
-                ret_6m = p[-1] / p[-126] - 1 if n > 126 else np.nan
-                ret_12m = p[-1] / p[-252] - 1 if n > 252 else np.nan
-            
-            # Compute blended momentum
-            parts = []
-            total_w = 0
-            for r, w in [(ret_1m, w1m), (ret_3m, w3m), (ret_6m, w6m), (ret_12m, w12m)]:
-                if not np.isnan(r) and w > 0:
-                    parts.append(r * w)
-                    total_w += w
-            
-            if total_w < 0.5:
-                continue
-            
-            momentum = sum(parts) / total_w
-            
-            # Also compute 6M absolute return for filtering
-            abs_6m = p[-1] / p[-126] - 1 if n > 126 else 0
-            
-            # 30-day annualized volatility
-            if n > 30:
-                daily_rets = np.diff(np.log(p[-31:]))
-                vol_30d = np.std(daily_rets) * np.sqrt(252)
-            else:
-                vol_30d = 0.5  # default high
-            
-            scores[ticker] = {
-                'momentum': momentum,
-                'abs_6m': abs_6m,
-                'vol_30d': vol_30d,
-                'price': p[-1],
-            }
-        except:
-            continue
+def precompute_signals(close_df, volume_df):
+    """Precompute all signals needed for strategies."""
+    print("  Precomputing signals...", flush=True)
     
-    return scores
+    # Returns at different lookbacks
+    ret_1m = close_df / close_df.shift(22) - 1
+    ret_3m = close_df / close_df.shift(63) - 1
+    ret_6m = close_df / close_df.shift(126) - 1
+    ret_12m = close_df / close_df.shift(252) - 1
+    
+    # Skip-1-month returns (measured from 22 days ago)
+    shifted = close_df.shift(22)
+    ret_s1m = shifted / shifted.shift(22) - 1  # 1M return, 1M ago
+    ret_s3m = shifted / shifted.shift(63) - 1
+    ret_s6m = shifted / shifted.shift(126) - 1
+    ret_s12m = shifted / shifted.shift(252) - 1
+    
+    # 30-day rolling volatility (annualized)
+    log_ret = np.log(close_df / close_df.shift(1))
+    vol_30d = log_ret.rolling(30).std() * np.sqrt(252)
+    
+    # SPY SMA200 regime
+    spy_sma200 = close_df['SPY'].rolling(200).mean() if 'SPY' in close_df.columns else None
+    
+    # Volume 20d average
+    vol_avg_20 = volume_df.rolling(20).mean() if not volume_df.empty else None
+    
+    signals = {
+        'ret_1m': ret_1m, 'ret_3m': ret_3m, 'ret_6m': ret_6m, 'ret_12m': ret_12m,
+        'ret_s1m': ret_s1m, 'ret_s3m': ret_s3m, 'ret_s6m': ret_s6m, 'ret_s12m': ret_s12m,
+        'vol_30d': vol_30d, 'spy_sma200': spy_sma200, 'vol_avg_20': vol_avg_20,
+        'close': close_df,
+    }
+    print("  Signals precomputed.", flush=True)
+    return signals
 
-def get_spy_regime(close_df, date, sma_period=200):
-    """Check if SPY is above/below SMA200."""
-    if 'SPY' not in close_df.columns:
+
+def get_scores_at_date(signals, date, weights=(0.25, 0.40, 0.35, 0.0), 
+                       skip_recent=False, min_price=5.0):
+    """Get momentum scores for all stocks at a given date, vectorized."""
+    close = signals['close']
+    
+    # Get the date index closest to but not after `date`
+    valid_idx = close.index[close.index <= date]
+    if len(valid_idx) == 0:
+        return pd.DataFrame()
+    idx = valid_idx[-1]
+    
+    w1m, w3m, w6m, w12m = weights
+    
+    if skip_recent:
+        r1 = signals['ret_s1m'].loc[idx] * w1m if w1m > 0 else 0
+        r3 = signals['ret_s3m'].loc[idx] * w3m if w3m > 0 else 0
+        r6 = signals['ret_s6m'].loc[idx] * w6m if w6m > 0 else 0
+        r12 = signals['ret_s12m'].loc[idx] * w12m if w12m > 0 else 0
+    else:
+        r1 = signals['ret_1m'].loc[idx] * w1m if w1m > 0 else 0
+        r3 = signals['ret_3m'].loc[idx] * w3m if w3m > 0 else 0
+        r6 = signals['ret_6m'].loc[idx] * w6m if w6m > 0 else 0
+        r12 = signals['ret_12m'].loc[idx] * w12m if w12m > 0 else 0
+    
+    momentum = r1 + r3 + r6 + r12
+    abs_6m = signals['ret_6m'].loc[idx]
+    vol = signals['vol_30d'].loc[idx]
+    price = close.loc[idx]
+    
+    df = pd.DataFrame({
+        'momentum': momentum,
+        'abs_6m': abs_6m,
+        'vol_30d': vol,
+        'price': price,
+    })
+    
+    # Basic filters: valid data, min price, min history
+    df = df.dropna(subset=['momentum'])
+    df = df[df['price'] >= min_price]
+    df = df[df.index != 'SPY']
+    
+    return df
+
+
+def get_regime(signals, date):
+    """Check SPY regime at date."""
+    spy_sma = signals['spy_sma200']
+    if spy_sma is None:
         return 'bull'
-    spy = close_df['SPY'].loc[:date].dropna()
-    if len(spy) < sma_period:
+    valid = spy_sma.loc[:date].dropna()
+    if len(valid) == 0:
         return 'bull'
-    sma = spy.iloc[-sma_period:].mean()
-    current = spy.iloc[-1]
-    return 'bull' if current > sma else 'bear'
+    spy_close = signals['close']['SPY'].loc[:date].dropna()
+    if len(spy_close) == 0:
+        return 'bull'
+    return 'bull' if spy_close.iloc[-1] > valid.iloc[-1] else 'bear'
 
 
-# ─── Strategy Variants ─────────────────────────────────────────
+# ─── Strategy Functions ─────────────────────────────────────────
 
-def strategy_v1_baseline(close_df, volume_df, sectors, date, prev_holdings, **kwargs):
-    """v1 baseline: Pure momentum Top 10, equal weight, monthly."""
-    scores = compute_momentum_scores(close_df, volume_df, date,
-                                     weights=(0.25, 0.40, 0.35, 0.0))
-    sorted_s = sorted(scores.items(), key=lambda x: x[1]['momentum'], reverse=True)
-    selected = [t for t, _ in sorted_s[:10]]
-    weights = {t: 1.0/len(selected) for t in selected} if selected else {}
-    return weights
-
-
-def strategy_v2a_regime_absmom(close_df, volume_df, sectors, date, prev_holdings, **kwargs):
-    """
-    v2a: Market Regime + Absolute Momentum Filter
-    - Bull (SPY > SMA200): Top 10 momentum stocks with abs_6m > 0
-    - Bear (SPY < SMA200): 100% cash
-    - If fewer than 10 pass filter, hold fewer + cash
-    """
-    regime = get_spy_regime(close_df, date)
-    
-    if regime == 'bear':
-        return {}  # 100% cash
-    
-    scores = compute_momentum_scores(close_df, volume_df, date,
-                                     weights=(0.25, 0.40, 0.35, 0.0))
-    
-    # Absolute momentum filter
-    filtered = {t: s for t, s in scores.items() if s['abs_6m'] > 0}
-    
-    sorted_s = sorted(filtered.items(), key=lambda x: x[1]['momentum'], reverse=True)
-    selected = [t for t, _ in sorted_s[:10]]
-    weights = {t: 1.0/max(len(selected), 1) for t in selected}
-    return weights
+def strategy_v1(signals, sectors, date, prev_holdings):
+    """v1 baseline: Pure momentum Top 10, equal weight."""
+    df = get_scores_at_date(signals, date, weights=(0.25, 0.40, 0.35, 0.0))
+    if df.empty:
+        return {}
+    top = df.nlargest(10, 'momentum')
+    n = len(top)
+    return {t: 1.0/n for t in top.index} if n > 0 else {}
 
 
-def strategy_v2b_lowturnover(close_df, volume_df, sectors, date, prev_holdings, **kwargs):
-    """
-    v2b: Low Turnover Focus
-    - Skip-1-month momentum (academic 12-1 style)
-    - Absolute momentum filter
-    - Regime filter (SPY SMA200)
-    - Holdover bonus: stocks already in portfolio get +5% momentum bonus
-    - Top 10, equal weight
-    """
-    regime = get_spy_regime(close_df, date)
-    if regime == 'bear':
+def strategy_v2a(signals, sectors, date, prev_holdings):
+    """v2a: Regime + Absolute Momentum Filter."""
+    if get_regime(signals, date) == 'bear':
         return {}
     
-    # Skip recent month momentum weights: emphasize 3M and 6M
-    scores = compute_momentum_scores(close_df, volume_df, date,
-                                     weights=(0.0, 0.40, 0.35, 0.25),
-                                     skip_recent_month=True)
+    df = get_scores_at_date(signals, date, weights=(0.25, 0.40, 0.35, 0.0))
+    if df.empty:
+        return {}
     
-    # Absolute momentum filter
-    filtered = {t: s for t, s in scores.items() if s['abs_6m'] > 0}
+    df = df[df['abs_6m'] > 0]  # Absolute momentum filter
+    top = df.nlargest(10, 'momentum')
+    n = len(top)
+    return {t: 1.0/n for t in top.index} if n > 0 else {}
+
+
+def strategy_v2b(signals, sectors, date, prev_holdings):
+    """v2b: Skip-1M + Holdover bonus + Regime + Abs Momentum."""
+    if get_regime(signals, date) == 'bear':
+        return {}
     
-    # Holdover bonus: reduce turnover by giving incumbents a boost
-    for t in filtered:
+    df = get_scores_at_date(signals, date, 
+                            weights=(0.0, 0.40, 0.35, 0.25),
+                            skip_recent=True)
+    if df.empty:
+        return {}
+    
+    df = df[df['abs_6m'] > 0]
+    
+    # Holdover bonus
+    for t in df.index:
         if t in prev_holdings:
-            filtered[t] = dict(filtered[t])
-            filtered[t]['momentum'] = filtered[t]['momentum'] + 0.05
+            df.loc[t, 'momentum'] += 0.05
     
-    sorted_s = sorted(filtered.items(), key=lambda x: x[1]['momentum'], reverse=True)
-    selected = [t for t, _ in sorted_s[:10]]
-    weights = {t: 1.0/max(len(selected), 1) for t in selected}
-    return weights
+    top = df.nlargest(10, 'momentum')
+    n = len(top)
+    return {t: 1.0/n for t in top.index} if n > 0 else {}
 
 
-def strategy_v2c_sector_vol(close_df, volume_df, sectors, date, prev_holdings, **kwargs):
-    """
-    v2c: Sector Diversified + Vol-Weighted + Regime + Abs Momentum
-    - Max 3 per sector
-    - Inverse-vol weighting
-    - Regime filter
-    - Absolute momentum filter
-    """
-    regime = get_spy_regime(close_df, date)
-    if regime == 'bear':
+def strategy_v2c(signals, sectors, date, prev_holdings):
+    """v2c: Sector-Diversified + Vol-Weighted + Regime + Abs Momentum."""
+    if get_regime(signals, date) == 'bear':
         return {}
     
-    scores = compute_momentum_scores(close_df, volume_df, date,
-                                     weights=(0.25, 0.40, 0.35, 0.0))
+    df = get_scores_at_date(signals, date, weights=(0.25, 0.40, 0.35, 0.0))
+    if df.empty:
+        return {}
     
-    # Absolute momentum filter
-    filtered = {t: s for t, s in scores.items() if s['abs_6m'] > 0}
+    df = df[df['abs_6m'] > 0]
+    df = df.sort_values('momentum', ascending=False)
     
-    # Sort by momentum
-    sorted_s = sorted(filtered.items(), key=lambda x: x[1]['momentum'], reverse=True)
-    
-    # Sector-diversified selection
+    # Sector-diversified selection (max 3 per sector)
     selected = []
     sector_count = Counter()
-    max_per_sector = 3
-    
-    for ticker, data in sorted_s:
-        sector = sectors.get(ticker, 'Unknown')
-        if sector_count[sector] < max_per_sector:
-            selected.append((ticker, data))
-            sector_count[sector] += 1
+    for t in df.index:
+        sec = sectors.get(t, 'Unknown')
+        if sector_count[sec] < 3:
+            selected.append(t)
+            sector_count[sec] += 1
         if len(selected) >= 10:
             break
     
@@ -274,115 +235,85 @@ def strategy_v2c_sector_vol(close_df, volume_df, sectors, date, prev_holdings, *
     
     # Inverse-vol weighting
     inv_vols = {}
-    for ticker, data in selected:
-        vol = max(data['vol_30d'], 0.10)  # floor at 10%
-        inv_vols[ticker] = 1.0 / vol
-    
-    total_inv = sum(inv_vols.values())
-    weights = {t: v / total_inv for t, v in inv_vols.items()}
-    return weights
+    for t in selected:
+        vol = max(df.loc[t, 'vol_30d'], 0.10)
+        inv_vols[t] = 1.0 / vol
+    total = sum(inv_vols.values())
+    return {t: v/total for t, v in inv_vols.items()}
 
 
-def strategy_v2d_adaptive(close_df, volume_df, sectors, date, prev_holdings, **kwargs):
-    """
-    v2d: Adaptive All-in-One
-    - Bull: Top 12, sector cap 3, inverse-vol weighted
-    - Bear: Top 5 sector cap 2, 50% invested + 50% cash
-    - Absolute momentum filter
-    - Vol filter: exclude stocks with 30d vol > 65%
-    - Holdover bonus
-    """
-    regime = get_spy_regime(close_df, date)
+def strategy_v2d(signals, sectors, date, prev_holdings):
+    """v2d: Adaptive Regime + Dynamic Size + Sector + Vol + Holdover."""
+    regime = get_regime(signals, date)
     
-    scores = compute_momentum_scores(close_df, volume_df, date,
-                                     weights=(0.20, 0.40, 0.30, 0.10))
+    df = get_scores_at_date(signals, date, weights=(0.20, 0.40, 0.30, 0.10))
+    if df.empty:
+        return {}
     
-    # Absolute momentum filter
-    filtered = {t: s for t, s in scores.items() 
-                if s['abs_6m'] > 0 and s['vol_30d'] < 0.65}
+    # Absolute momentum + vol filter
+    df = df[(df['abs_6m'] > 0) & (df['vol_30d'] < 0.65)]
     
     # Holdover bonus
-    for t in filtered:
+    for t in df.index:
         if t in prev_holdings:
-            filtered[t] = dict(filtered[t])
-            filtered[t]['momentum'] = filtered[t]['momentum'] + 0.03
+            df.loc[t, 'momentum'] += 0.03
     
-    sorted_s = sorted(filtered.items(), key=lambda x: x[1]['momentum'], reverse=True)
+    df = df.sort_values('momentum', ascending=False)
     
     if regime == 'bull':
-        top_n = 12
-        max_sector = 3
-        cash_frac = 0.0
+        top_n, max_sec, cash = 12, 3, 0.0
     else:
-        top_n = 5
-        max_sector = 2
-        cash_frac = 0.50
+        top_n, max_sec, cash = 5, 2, 0.50
     
-    # Sector-diversified selection
     selected = []
     sector_count = Counter()
-    for ticker, data in sorted_s:
-        sector = sectors.get(ticker, 'Unknown')
-        if sector_count[sector] < max_sector:
-            selected.append((ticker, data))
-            sector_count[sector] += 1
+    for t in df.index:
+        sec = sectors.get(t, 'Unknown')
+        if sector_count[sec] < max_sec:
+            selected.append(t)
+            sector_count[sec] += 1
         if len(selected) >= top_n:
             break
     
     if not selected:
         return {}
     
-    # Inverse-vol weighting
     inv_vols = {}
-    for ticker, data in selected:
-        vol = max(data['vol_30d'], 0.10)
-        inv_vols[ticker] = 1.0 / vol
-    
-    total_inv = sum(inv_vols.values())
-    invested_frac = 1.0 - cash_frac
-    weights = {t: (v / total_inv) * invested_frac for t, v in inv_vols.items()}
-    return weights
+    for t in selected:
+        vol = max(df.loc[t, 'vol_30d'], 0.10)
+        inv_vols[t] = 1.0 / vol
+    total = sum(inv_vols.values())
+    invested = 1.0 - cash
+    return {t: (v/total) * invested for t, v in inv_vols.items()}
 
 
-def strategy_v2e_conservative(close_df, volume_df, sectors, date, prev_holdings, **kwargs):
-    """
-    v2e: Conservative Best Combo
-    - Regime filter (bear → 100% cash)
-    - Absolute momentum filter
-    - Skip-1-month momentum
-    - Sector cap 3
-    - Inverse-vol weighting
-    - Holdover bonus (larger, 8%)
-    - Top 10
-    """
-    regime = get_spy_regime(close_df, date)
-    if regime == 'bear':
+def strategy_v2e(signals, sectors, date, prev_holdings):
+    """v2e: Conservative Combo (skip-1M + sector + vol + holdover + regime)."""
+    if get_regime(signals, date) == 'bear':
         return {}
     
-    scores = compute_momentum_scores(close_df, volume_df, date,
-                                     weights=(0.0, 0.35, 0.35, 0.30),
-                                     skip_recent_month=True)
+    df = get_scores_at_date(signals, date, 
+                            weights=(0.0, 0.35, 0.35, 0.30),
+                            skip_recent=True)
+    if df.empty:
+        return {}
     
-    # Absolute momentum + vol filter
-    filtered = {t: s for t, s in scores.items() 
-                if s['abs_6m'] > 0 and s['vol_30d'] < 0.60}
+    df = df[(df['abs_6m'] > 0) & (df['vol_30d'] < 0.60)]
     
-    # Holdover bonus
-    for t in filtered:
+    # Large holdover bonus (reduce turnover)
+    for t in df.index:
         if t in prev_holdings:
-            filtered[t] = dict(filtered[t])
-            filtered[t]['momentum'] = filtered[t]['momentum'] + 0.08
+            df.loc[t, 'momentum'] += 0.08
     
-    sorted_s = sorted(filtered.items(), key=lambda x: x[1]['momentum'], reverse=True)
+    df = df.sort_values('momentum', ascending=False)
     
-    # Sector-diversified
     selected = []
     sector_count = Counter()
-    for ticker, data in sorted_s:
-        sector = sectors.get(ticker, 'Unknown')
-        if sector_count[sector] < 3:
-            selected.append((ticker, data))
-            sector_count[sector] += 1
+    for t in df.index:
+        sec = sectors.get(t, 'Unknown')
+        if sector_count[sec] < 3:
+            selected.append(t)
+            sector_count[sec] += 1
         if len(selected) >= 10:
             break
     
@@ -390,32 +321,21 @@ def strategy_v2e_conservative(close_df, volume_df, sectors, date, prev_holdings,
         return {}
     
     inv_vols = {}
-    for ticker, data in selected:
-        vol = max(data['vol_30d'], 0.10)
-        inv_vols[ticker] = 1.0 / vol
-    
-    total_inv = sum(inv_vols.values())
-    weights = {t: v / total_inv for t, v in inv_vols.items()}
-    return weights
+    for t in selected:
+        vol = max(df.loc[t, 'vol_30d'], 0.10)
+        inv_vols[t] = 1.0 / vol
+    total = sum(inv_vols.values())
+    return {t: v/total for t, v in inv_vols.items()}
 
 
 # ─── Backtest Engine ────────────────────────────────────────────
 
-def run_backtest(close_df, volume_df, sectors, strategy_fn, 
+def run_backtest(close_df, signals, sectors, strategy_fn,
                  start='2015-01-01', end='2025-12-31',
                  rebalance_months=1, cost_per_trade=0.0015):
-    """
-    Generic backtest engine.
-    rebalance_months: 1=monthly, 2=bimonthly, 3=quarterly
-    """
+    """Generic monthly backtest."""
     close_range = close_df.loc[start:end].dropna(how='all')
     month_ends = close_range.resample('ME').last().index
-    
-    # Filter rebalance dates
-    if rebalance_months > 1:
-        rebal_dates = month_ends[::rebalance_months]
-    else:
-        rebal_dates = month_ends
     
     portfolio_values = []
     portfolio_dates = []
@@ -423,103 +343,77 @@ def run_backtest(close_df, volume_df, sectors, strategy_fn,
     turnover_list = []
     prev_weights = {}
     prev_holdings = set()
-    
     current_value = 1.0
-    last_rebal_idx = -rebalance_months  # Force first rebalance
+    rebal_counter = 0
     
     for i in range(len(month_ends) - 1):
         date = month_ends[i]
         next_date = month_ends[i + 1]
+        rebal_counter += 1
         
-        # Check if this is a rebalance date
-        is_rebal = (date in rebal_dates) or (i == 0)
+        is_rebal = (rebal_counter >= rebalance_months) or (i == 0)
+        if is_rebal:
+            rebal_counter = 0
         
         if is_rebal:
-            new_weights = strategy_fn(close_df, volume_df, sectors, date, prev_holdings)
+            new_weights = strategy_fn(signals, sectors, date, prev_holdings)
             
-            # Compute turnover
-            all_tickers = set(list(new_weights.keys()) + list(prev_weights.keys()))
-            turnover = 0
-            for t in all_tickers:
-                old_w = prev_weights.get(t, 0)
-                new_w = new_weights.get(t, 0)
-                turnover += abs(new_w - old_w)
-            turnover /= 2  # One-way turnover
+            # Turnover
+            all_t = set(list(new_weights.keys()) + list(prev_weights.keys()))
+            turnover = sum(abs(new_weights.get(t, 0) - prev_weights.get(t, 0)) for t in all_t) / 2
             turnover_list.append(turnover)
             
             current_weights = new_weights
             prev_weights = new_weights.copy()
             prev_holdings = set(new_weights.keys())
-            
-            selected = list(new_weights.keys())
-            holdings_history[date.strftime('%Y-%m')] = selected
+            holdings_history[date.strftime('%Y-%m')] = list(new_weights.keys())
         else:
             current_weights = prev_weights
         
-        # Calculate period return
-        invested_frac = sum(current_weights.values())
-        cash_frac = 1.0 - invested_frac
-        
-        period_returns = []
-        weight_sum = 0
+        # Period return
+        invested = sum(current_weights.values())
+        port_ret = 0.0
         for t, w in current_weights.items():
             try:
-                t_prices = close_df[t].loc[date:next_date].dropna()
-                if len(t_prices) >= 2:
-                    ret = t_prices.iloc[-1] / t_prices.iloc[0] - 1
-                    period_returns.append(ret * w)
-                    weight_sum += w
+                p = close_df[t].loc[date:next_date].dropna()
+                if len(p) >= 2:
+                    port_ret += (p.iloc[-1] / p.iloc[0] - 1) * w
             except:
                 pass
         
-        port_ret = sum(period_returns) + cash_frac * 0.0  # Cash earns 0%
-        
-        # Transaction cost
+        # Cash portion earns 0%
         if is_rebal:
-            cost = turnover * cost_per_trade * 2
-            port_ret -= cost
+            port_ret -= turnover * cost_per_trade * 2
         
         current_value *= (1 + port_ret)
         portfolio_values.append(current_value)
         portfolio_dates.append(next_date)
     
     equity = pd.Series(portfolio_values, index=pd.DatetimeIndex(portfolio_dates))
-    avg_turnover = np.mean(turnover_list) if turnover_list else 0
-    
-    # For bimonthly/quarterly, annualize turnover differently
-    periods_per_year = 12 / rebalance_months
-    annual_turnover = avg_turnover * periods_per_year
-    monthly_equiv_turnover = avg_turnover  # Per rebalance period
-    
-    return equity, holdings_history, avg_turnover, turnover_list
+    avg_to = np.mean(turnover_list) if turnover_list else 0
+    return equity, holdings_history, avg_to
 
 
 def compute_metrics(equity, name="Strategy"):
     if len(equity) < 2:
-        return {'name': name, 'cagr': 0, 'total_return': 0, 'max_dd': 0, 
-                'sharpe': 0, 'calmar': 0, 'win_rate': 0}
+        return {'name': name, 'cagr': 0, 'total_return': 0, 'max_dd': 0,
+                'sharpe': 0, 'calmar': 0, 'win_rate': 0, 'max_dd_date': 'N/A'}
     
-    total_days = (equity.index[-1] - equity.index[0]).days
-    total_years = total_days / 365.25
-    
-    total_return = equity.iloc[-1] / equity.iloc[0] - 1
-    cagr = (equity.iloc[-1] / equity.iloc[0]) ** (1/total_years) - 1
-    
+    years = (equity.index[-1] - equity.index[0]).days / 365.25
+    cagr = (equity.iloc[-1] / equity.iloc[0]) ** (1/years) - 1
     monthly = equity.pct_change().dropna()
     sharpe = monthly.mean() / monthly.std() * np.sqrt(12) if monthly.std() > 0 else 0
-    
     cummax = equity.cummax()
-    drawdown = (equity - cummax) / cummax
-    max_dd = drawdown.min()
-    max_dd_date = drawdown.idxmin()
-    
+    dd = (equity - cummax) / cummax
+    max_dd = dd.min()
+    max_dd_date = dd.idxmin()
     calmar = cagr / abs(max_dd) if max_dd != 0 else 0
-    win_rate = (monthly > 0).sum() / len(monthly) if len(monthly) > 0 else 0
     
     return {
-        'name': name, 'cagr': cagr, 'total_return': total_return,
-        'max_dd': max_dd, 'max_dd_date': str(max_dd_date.date()) if hasattr(max_dd_date, 'date') else str(max_dd_date),
-        'sharpe': sharpe, 'calmar': calmar, 'win_rate': win_rate,
+        'name': name, 'cagr': cagr, 'max_dd': max_dd,
+        'max_dd_date': str(max_dd_date.date()) if hasattr(max_dd_date, 'date') else 'N/A',
+        'sharpe': sharpe, 'calmar': calmar,
+        'win_rate': (monthly > 0).sum() / len(monthly) if len(monthly) > 0 else 0,
     }
 
 
@@ -528,208 +422,122 @@ def compute_metrics(equity, name="Strategy"):
 def main():
     print("=" * 70)
     print("🐻 代码熊 — 动量轮动选股策略 v2 全面优化")
-    print("=" * 70)
+    print("=" * 70, flush=True)
     
-    # Load data
     tickers = (CACHE / "sp500_tickers.txt").read_text().strip().split('\n')
     close_df, volume_df, loaded = load_all_data(tickers + ['SPY'])
     sectors = load_sectors()
-    print(f"Loaded {loaded} stocks, {len(sectors)} sectors mapped")
+    print(f"Loaded {loaded} stocks, {len(sectors)} sectors", flush=True)
     
-    # Strategy definitions
-    strategies = {
-        'v1_baseline': {
-            'fn': strategy_v1_baseline,
-            'rebal_months': 1,
-            'desc': 'v1 原版: 纯动量Top10等权月度'
-        },
-        'v2a_regime': {
-            'fn': strategy_v2a_regime_absmom,
-            'rebal_months': 1,
-            'desc': 'v2a: Regime过滤 + 绝对动量'
-        },
-        'v2b_lowturn': {
-            'fn': strategy_v2b_lowturnover,
-            'rebal_months': 2,
-            'desc': 'v2b: 双月+Skip1M+持仓惯性'
-        },
-        'v2c_sector': {
-            'fn': strategy_v2c_sector_vol,
-            'rebal_months': 1,
-            'desc': 'v2c: 行业分散+Vol加权+Regime'
-        },
-        'v2d_adaptive': {
-            'fn': strategy_v2d_adaptive,
-            'rebal_months': 1,
-            'desc': 'v2d: 自适应持仓+Regime+行业+Vol'
-        },
-        'v2e_conservative': {
-            'fn': strategy_v2e_conservative,
-            'rebal_months': 2,
-            'desc': 'v2e: 保守最优组合(双月+Skip1M+行业+Vol)'
-        },
-    }
+    # Precompute all signals (vectorized)
+    signals = precompute_signals(close_df, volume_df)
+    
+    strategies = [
+        ('v1_baseline', strategy_v1, 1, 'v1: 纯动量Top10等权月度'),
+        ('v2a_regime', strategy_v2a, 1, 'v2a: Regime+绝对动量'),
+        ('v2b_lowturn', strategy_v2b, 2, 'v2b: 双月+Skip1M+惯性'),
+        ('v2c_sector', strategy_v2c, 1, 'v2c: 行业分散+Vol权重+Regime'),
+        ('v2d_adaptive', strategy_v2d, 1, 'v2d: 自适应持仓+行业+Vol'),
+        ('v2e_conservative', strategy_v2e, 2, 'v2e: 保守组合(双月+全过滤)'),
+    ]
     
     all_results = {}
     
-    for key, cfg in strategies.items():
-        print(f"\n{'─' * 60}")
-        print(f"📊 Running {key}: {cfg['desc']}")
-        print(f"{'─' * 60}")
+    for key, fn, rebal, desc in strategies:
+        print(f"\n{'─'*60}", flush=True)
+        print(f"📊 {key}: {desc}", flush=True)
         
-        # Full period
-        eq_full, hold_full, to_full, to_list_full = run_backtest(
-            close_df, volume_df, sectors, cfg['fn'],
-            '2015-01-01', '2025-12-31', cfg['rebal_months'])
-        
-        # IS period
-        eq_is, hold_is, to_is, _ = run_backtest(
-            close_df, volume_df, sectors, cfg['fn'],
-            '2015-01-01', '2020-12-31', cfg['rebal_months'])
-        
-        # OOS period
-        eq_oos, hold_oos, to_oos, _ = run_backtest(
-            close_df, volume_df, sectors, cfg['fn'],
-            '2021-01-01', '2025-12-31', cfg['rebal_months'])
+        eq_full, hold_full, to_full = run_backtest(close_df, signals, sectors, fn,
+                                                    '2015-01-01', '2025-12-31', rebal)
+        eq_is, _, to_is = run_backtest(close_df, signals, sectors, fn,
+                                        '2015-01-01', '2020-12-31', rebal)
+        eq_oos, _, to_oos = run_backtest(close_df, signals, sectors, fn,
+                                          '2021-01-01', '2025-12-31', rebal)
         
         m_full = compute_metrics(eq_full, key)
         m_is = compute_metrics(eq_is, f"{key}_IS")
         m_oos = compute_metrics(eq_oos, f"{key}_OOS")
         
         wf_ratio = m_oos['sharpe'] / m_is['sharpe'] if m_is['sharpe'] != 0 else 0
-        wf_pass = wf_ratio >= 0.70
-        
         composite = m_full['sharpe'] * 0.4 + m_full['calmar'] * 0.4 + m_full['cagr'] * 0.2
         
-        result = {
-            'desc': cfg['desc'],
-            'full': m_full,
-            'is': m_is,
-            'oos': m_oos,
-            'wf_ratio': wf_ratio,
-            'wf_pass': wf_pass,
-            'avg_turnover': to_full,
-            'composite': composite,
-            'holdings': hold_full,
-            'rebal_months': cfg['rebal_months'],
+        all_results[key] = {
+            'desc': desc, 'full': m_full, 'is': m_is, 'oos': m_oos,
+            'wf_ratio': wf_ratio, 'wf_pass': wf_ratio >= 0.70,
+            'avg_turnover': to_full, 'composite': composite,
+            'holdings': hold_full, 'rebal_months': rebal,
         }
-        all_results[key] = result
         
-        print(f"  Full:  CAGR {m_full['cagr']:.1%}  MaxDD {m_full['max_dd']:.1%}  "
-              f"Sharpe {m_full['sharpe']:.2f}  Calmar {m_full['calmar']:.2f}")
-        print(f"  IS:    Sharpe {m_is['sharpe']:.2f}")
-        print(f"  OOS:   Sharpe {m_oos['sharpe']:.2f}")
-        print(f"  WF:    {wf_ratio:.2f} {'✅' if wf_pass else '❌'}")
-        print(f"  TO:    {to_full:.1%}/period  Composite: {composite:.3f}")
-        print(f"  MaxDD date: {m_full.get('max_dd_date', 'N/A')}")
+        wm = '✅' if wf_ratio >= 0.70 else '❌'
+        print(f"  Full: CAGR {m_full['cagr']:.1%} MaxDD {m_full['max_dd']:.1%} "
+              f"Sharpe {m_full['sharpe']:.2f} Calmar {m_full['calmar']:.2f}", flush=True)
+        print(f"  IS {m_is['sharpe']:.2f} OOS {m_oos['sharpe']:.2f} WF {wf_ratio:.2f} {wm} "
+              f"TO {to_full:.1%} Comp {composite:.3f}", flush=True)
     
-    # SPY benchmark
-    print(f"\n{'─' * 60}")
-    print(f"📊 SPY Buy & Hold")
-    spy_prices = close_df['SPY'].loc['2015-01-01':'2025-12-31'].dropna()
-    spy_monthly = spy_prices.resample('ME').last()
-    spy_eq = spy_monthly / spy_monthly.iloc[0]
-    m_spy = compute_metrics(spy_eq, "SPY B&H")
-    print(f"  CAGR {m_spy['cagr']:.1%}  MaxDD {m_spy['max_dd']:.1%}  Sharpe {m_spy['sharpe']:.2f}")
+    # SPY
+    spy = close_df['SPY'].loc['2015-01-01':'2025-12-31'].dropna().resample('ME').last()
+    spy_eq = spy / spy.iloc[0]
+    m_spy = compute_metrics(spy_eq, "SPY")
     
-    # ─── Comparison Table ─────────────────────────────────────
-    print("\n" + "=" * 110)
-    print("📊 COMPARISON TABLE")
-    print("=" * 110)
-    print(f"{'Version':<16} {'CAGR':>7} {'MaxDD':>8} {'Sharpe':>7} {'Turnover':>9} "
-          f"{'IS Sh':>7} {'OOS Sh':>8} {'WF':>6} {'Composite':>10}")
+    # ─── Summary Table ─────────────────────────────────────
+    print(f"\n{'='*110}")
+    print(f"{'Version':<16} {'CAGR':>7} {'MaxDD':>8} {'Sharpe':>7} {'TO':>8} "
+          f"{'IS':>7} {'OOS':>7} {'WF':>6} {'Comp':>8}")
     print("-" * 110)
     
     for key, r in all_results.items():
-        wf_mark = '✅' if r['wf_pass'] else '❌'
-        print(f"{key:<16} "
-              f"{r['full']['cagr']:>6.1%} "
-              f"{r['full']['max_dd']:>7.1%} "
-              f"{r['full']['sharpe']:>7.2f} "
-              f"{r['avg_turnover']:>8.1%} "
-              f"{r['is']['sharpe']:>7.2f} "
-              f"{r['oos']['sharpe']:>8.2f} "
-              f"{wf_mark:>4} "
-              f"{r['composite']:>10.3f}")
+        wm = '✅' if r['wf_pass'] else '❌'
+        print(f"{key:<16} {r['full']['cagr']:>6.1%} {r['full']['max_dd']:>7.1%} "
+              f"{r['full']['sharpe']:>7.2f} {r['avg_turnover']:>7.1%} "
+              f"{r['is']['sharpe']:>7.2f} {r['oos']['sharpe']:>7.2f} "
+              f"{wm:>4} {r['composite']:>8.3f}")
     
-    print(f"{'SPY B&H':<16} "
-          f"{m_spy['cagr']:>6.1%} "
-          f"{m_spy['max_dd']:>7.1%} "
-          f"{m_spy['sharpe']:>7.2f} "
-          f"{'—':>9} "
-          f"{'—':>7} "
-          f"{'—':>8} "
-          f"{'—':>4} "
-          f"{'—':>10}")
+    print(f"{'SPY B&H':<16} {m_spy['cagr']:>6.1%} {m_spy['max_dd']:>7.1%} "
+          f"{m_spy['sharpe']:>7.2f} {'—':>8} {'—':>7} {'—':>7} {'—':>4} {'—':>8}")
     
-    # ─── Find best ──────────────────────────────────────────
-    # Priority: WF pass first, then composite
-    wf_passed = {k: v for k, v in all_results.items() if v['wf_pass'] and k != 'v1_baseline'}
+    # Best selection
+    v2_only = {k: v for k, v in all_results.items() if k != 'v1_baseline'}
+    wf_passed = {k: v for k, v in v2_only.items() if v['wf_pass']}
     
     if wf_passed:
         best_key = max(wf_passed, key=lambda k: wf_passed[k]['composite'])
         print(f"\n🏆 Best (WF passed): {best_key}")
     else:
-        # Pick highest OOS/IS ratio
-        v2_results = {k: v for k, v in all_results.items() if k != 'v1_baseline'}
-        best_key = max(v2_results, key=lambda k: v2_results[k]['wf_ratio'])
+        best_key = max(v2_only, key=lambda k: v2_only[k]['wf_ratio'])
         print(f"\n🏆 Best (highest WF ratio): {best_key}")
     
     best = all_results[best_key]
-    print(f"   CAGR: {best['full']['cagr']:.1%}  Sharpe: {best['full']['sharpe']:.2f}  "
-          f"MaxDD: {best['full']['max_dd']:.1%}")
-    print(f"   IS: {best['is']['sharpe']:.2f}  OOS: {best['oos']['sharpe']:.2f}  "
-          f"WF: {best['wf_ratio']:.2f}")
-    print(f"   Turnover: {best['avg_turnover']:.1%}/period  "
-          f"Composite: {best['composite']:.3f}")
+    print(f"   CAGR {best['full']['cagr']:.1%} | Sharpe {best['full']['sharpe']:.2f} | "
+          f"MaxDD {best['full']['max_dd']:.1%} | Composite {best['composite']:.3f}")
+    print(f"   IS {best['is']['sharpe']:.2f} | OOS {best['oos']['sharpe']:.2f} | "
+          f"WF {best['wf_ratio']:.2f} | TO {best['avg_turnover']:.1%}")
     
-    # ─── Holdings Analysis ──────────────────────────────────
-    print(f"\n📋 {best_key} — Holdings Analysis")
-    hold = best['holdings']
+    # Holdings analysis for best
+    hold = best.get('holdings', {})
+    if hold:
+        all_h = [t for stocks in hold.values() for t in stocks]
+        freq = Counter(all_h).most_common(15)
+        total_p = len(hold)
+        print(f"\n📋 {best_key} Top 15 stocks ({total_p} periods):")
+        for t, c in freq:
+            sec = sectors.get(t, '?')
+            print(f"  {t:6s} [{sec:12s}] {c:3d}/{total_p} ({c/total_p:.0%})")
+        
+        print(f"\n🔍 2023-2024 Holdings:")
+        hot = {'NVDA','TSLA','META','AVGO','AMD','SMCI','PLTR'}
+        for ym in sorted(hold.keys()):
+            if ym.startswith('2023') or ym.startswith('2024'):
+                h = [s for s in hold[ym] if s in hot]
+                stocks_str = ', '.join(hold[ym][:6])
+                print(f"  {ym}: {stocks_str} {'🔥'+','.join(h) if h else ''}")
     
-    # Most frequent stocks
-    all_h = []
-    for stocks in hold.values():
-        all_h.extend(stocks)
-    freq = Counter(all_h).most_common(15)
-    total_periods = len(hold)
-    print(f"\nTop 15 most selected (total {total_periods} periods):")
-    for ticker, count in freq:
-        sector = sectors.get(ticker, '?')
-        print(f"  {ticker:6s} [{sector:12s}]: {count:3d}/{total_periods} ({count/total_periods:.0%})")
-    
-    # 2023-2024 holdings
-    print(f"\n🔍 2023-2024 Holdings:")
-    hot_set = {'NVDA', 'TSLA', 'META', 'AMZN', 'AVGO', 'AMD', 'SMCI', 'PLTR'}
-    for ym in sorted(hold.keys()):
-        if ym.startswith('2023') or ym.startswith('2024'):
-            hot = [s for s in hold[ym] if s in hot_set]
-            all_stocks = ', '.join(hold[ym][:5]) + ('...' if len(hold[ym]) > 5 else '')
-            print(f"  {ym}: {all_stocks}  {'🔥 ' + ', '.join(hot) if hot else ''}")
-    
-    # Sector distribution for best
-    print(f"\n📊 Sector Distribution:")
-    all_sectors = [sectors.get(t, 'Unknown') for t in all_h]
-    sec_freq = Counter(all_sectors).most_common()
-    for sec, cnt in sec_freq:
-        print(f"  {sec:15s}: {cnt:4d} ({cnt/len(all_h):.0%})")
-    
-    # ─── Save results ──────────────────────────────────────
-    output = {
-        'comparison': {},
-        'best': best_key,
-        'spy': m_spy,
-    }
+    # Save
+    output = {'comparison': {}, 'best': best_key, 'spy': m_spy}
     for key, r in all_results.items():
         output['comparison'][key] = {
-            'desc': r['desc'],
-            'full': r['full'],
-            'is': r['is'],
-            'oos': r['oos'],
-            'wf_ratio': r['wf_ratio'],
-            'wf_pass': r['wf_pass'],
-            'avg_turnover': r['avg_turnover'],
-            'composite': r['composite'],
+            'desc': r['desc'], 'full': r['full'], 'is': r['is'], 'oos': r['oos'],
+            'wf_ratio': r['wf_ratio'], 'wf_pass': r['wf_pass'],
+            'avg_turnover': r['avg_turnover'], 'composite': r['composite'],
             'holdings': r['holdings'],
         }
     
@@ -741,4 +549,4 @@ def main():
     return all_results, best_key
 
 if __name__ == '__main__':
-    results, best = main()
+    main()
