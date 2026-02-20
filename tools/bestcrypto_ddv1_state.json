@@ -1,0 +1,28 @@
+{
+  "date": "2026-02-18",
+  "regime": "\ud83d\udfe1 GLD Defense",
+  "best_asset": "GLD",
+  "w_crypto": 0.1546,
+  "w_qqq": 0.7081,
+  "crypto_dd": -0.2352,
+  "qqq_dd": -0.0472,
+  "positions": {
+    "BTC": 0.0232,
+    "ETH": 0.0155,
+    "GLD": 0.085,
+    "CASH (crypto)": 0.0309,
+    "QQQ": 0.7081,
+    "CASH (DDv1)": 0.1373
+  },
+  "prices": {
+    "BTC": 66380.09,
+    "ETH": 1947.5,
+    "GLD": 458.28,
+    "QQQ": 605.79
+  },
+  "momentums": {
+    "BTC": -0.253,
+    "ETH": -0.3314,
+    "GLD": 0.2237
+  }
+}
