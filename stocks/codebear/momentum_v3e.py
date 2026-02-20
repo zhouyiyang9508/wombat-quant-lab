@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""
+动量轮动 v3e — Pure v2d + SMA50 Trend Filter (最小改动, 最大效果)
+代码熊 🐻
+
+核心: 在v2d基础上只加一个改动 — SMA50趋势过滤
+验证了趋势过滤是v3系列最重要的单一创新
+
+Results:
+  Full: CAGR 24.5%, Sharpe 1.26, MaxDD -16.7%, Calmar 1.46
+  IS: 1.44  OOS: 1.04  WF: 0.72 ✅
+  Turnover: 52.6%  Composite: 1.139
+
+vs v2d (只加了SMA50):
+  MaxDD: -21.9% → -16.7% (+5.2pp!)
+  Sharpe: 1.22 → 1.26 (+0.04)
+  Calmar: 1.18 → 1.46 (+0.28!)
+  Composite: 1.013 → 1.139 (+0.126)
+"""
+import os, sys, json, warnings
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from collections import Counter
+warnings.filterwarnings('ignore')
+
+BASE = Path(__file__).resolve().parent.parent.parent
+CACHE = BASE / "data_cache"
+STOCK_CACHE = CACHE / "stocks"
+
+def load_csv(fp):
+    df = pd.read_csv(fp)
+    if 'Date' in df.columns:
+        df['Date'] = pd.to_datetime(df['Date']); df = df.set_index('Date').sort_index()
+    else: df.index = pd.to_datetime(df.index); df = df.sort_index()
+    for c in ['Close','Volume']:
+        if c in df.columns: df[c] = pd.to_numeric(df[c], errors='coerce')
+    return df
+
+def load_all(tickers):
+    d = {}
+    for t in tickers:
+        f = STOCK_CACHE / f"{t}.csv"
+        if not f.exists() or f.stat().st_size < 500: continue
+        try:
+            df = load_csv(f)
+            if 'Close' in df.columns and len(df) > 200: d[t] = df['Close'].dropna()
+        except: pass
+    return pd.DataFrame(d)
+
+def precompute(cd):
+    r1 = cd/cd.shift(22)-1; r3 = cd/cd.shift(63)-1; r6 = cd/cd.shift(126)-1; r12 = cd/cd.shift(252)-1
+    lr = np.log(cd/cd.shift(1)); v30 = lr.rolling(30).std()*np.sqrt(252)
+    spy = cd['SPY'] if 'SPY' in cd.columns else None
+    return {'r1':r1,'r3':r3,'r6':r6,'r12':r12,'v30':v30,
+            'spy_sma200': spy.rolling(200).mean() if spy is not None else None,
+            'spy':spy, 'sma50': cd.rolling(50).mean(), 'close':cd}
+
+def regime(sig, date):
+    s = sig['spy_sma200']
+    if s is None: return 'bull'
+    v = s.loc[:date].dropna(); sp = sig['spy'].loc[:date].dropna()
+    if len(v)==0 or len(sp)==0: return 'bull'
+    return 'bull' if sp.iloc[-1] > v.iloc[-1] else 'bear'
+
+def select(sig, sectors, date, prev):
+    c = sig['close']; idx = c.index[c.index <= date]
+    if len(idx)==0: return {}
+    idx = idx[-1]; r = regime(sig, date)
+    mom = sig['r1'].loc[idx]*0.20 + sig['r3'].loc[idx]*0.40 + sig['r6'].loc[idx]*0.30 + sig['r12'].loc[idx]*0.10
+    df = pd.DataFrame({'m':mom,'a6':sig['r6'].loc[idx],'v':sig['v30'].loc[idx],'p':c.loc[idx],'s50':sig['sma50'].loc[idx]})
+    df = df.dropna(subset=['m','s50'])
+    df = df[(df['p']>=5)&(df.index!='SPY')&(df['a6']>0)&(df['v']<0.65)]
+    # SMA50 trend filter — the key innovation
+    df = df[df['p'] > df['s50']]
+    for t in df.index:
+        if t in prev: df.loc[t,'m'] += 0.03
+    df = df.sort_values('m', ascending=False)
+    # Exactly v2d selection logic
+    if r == 'bull': tn, ms, cash = 12, 3, 0.0
+    else: tn, ms, cash = 8, 2, 0.20
+    sel = []; sc = Counter()
+    for t in df.index:
+        s = sectors.get(t, '?')
+        if sc[s] < ms: sel.append(t); sc[s] += 1
+        if len(sel) >= tn: break
+    if not sel: return {}
+    iv = {t: 1.0/max(df.loc[t,'v'],0.10) for t in sel}
+    tt = sum(iv.values()); inv = 1.0-cash
+    return {t: (v/tt)*inv for t,v in iv.items()}
+
+def backtest(cd, sig, sec, start='2015-01-01', end='2025-12-31'):
+    cr = cd.loc[start:end].dropna(how='all'); me = cr.resample('ME').last().index
+    pv,pd_=[],[]; to_l=[]; pw,ph={},set(); cv=1.0; hh={}
+    for i in range(len(me)-1):
+        d,nd = me[i],me[i+1]; nw = select(sig,sec,d,ph)
+        at = set(list(nw.keys())+list(pw.keys()))
+        to = sum(abs(nw.get(t,0)-pw.get(t,0)) for t in at)/2
+        to_l.append(to); pw=nw.copy(); ph=set(nw.keys())
+        hh[d.strftime('%Y-%m')]=list(nw.keys())
+        pr = sum((cd[t].loc[d:nd].dropna().iloc[-1]/cd[t].loc[d:nd].dropna().iloc[0]-1)*w
+                 for t,w in nw.items() if len(cd[t].loc[d:nd].dropna())>=2)
+        pr -= to*0.0015*2; cv *= (1+pr); pv.append(cv); pd_.append(nd)
+    return pd.Series(pv, index=pd.DatetimeIndex(pd_)), hh, np.mean(to_l)
+
+def metrics(eq):
+    y=(eq.index[-1]-eq.index[0]).days/365.25
+    cagr=(eq.iloc[-1]/eq.iloc[0])**(1/y)-1; m=eq.pct_change().dropna()
+    sh=m.mean()/m.std()*np.sqrt(12) if m.std()>0 else 0
+    dd=(eq-eq.cummax())/eq.cummax(); mdd=dd.min()
+    return cagr,mdd,sh,cagr/abs(mdd) if mdd!=0 else 0
+
+def main():
+    print("🐻 v3e — Pure v2d + SMA50 Trend Filter")
+    tk = (CACHE/"sp500_tickers.txt").read_text().strip().split('\n')
+    cd = load_all(tk+['SPY']); sec = json.load(open(CACHE/"sp500_sectors.json"))
+    sig = precompute(cd)
+    eq,h,to = backtest(cd,sig,sec); c,d,s,cal = metrics(eq)
+    eq_is,_,_ = backtest(cd,sig,sec,'2015-01-01','2020-12-31')
+    eq_oos,_,_ = backtest(cd,sig,sec,'2021-01-01','2025-12-31')
+    _,_,si,_ = metrics(eq_is); _,_,so,_ = metrics(eq_oos)
+    wf = so/si if si else 0
+    print(f"CAGR {c:.1%} | Sharpe {s:.2f} | MaxDD {d:.1%} | Calmar {cal:.2f}")
+    print(f"WF: IS {si:.2f} → OOS {so:.2f} = {wf:.2f} {'✅' if wf>=0.70 else '❌'}")
+    print(f"T/O: {to:.1%} | Composite: {s*0.4+cal*0.4+c*0.2:.3f}")
+
+if __name__ == '__main__': main()
