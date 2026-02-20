@@ -9,176 +9,99 @@ S&P 500 月度动量 Top 10 等权持仓
 import os, sys, json, time
 import numpy as np
 import pandas as pd
-import yfinance as yf
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
+from collections import Counter
 
 BASE = Path(__file__).resolve().parent.parent.parent
 CACHE = BASE / "data_cache"
 STOCK_CACHE = CACHE / "stocks"
-STOCK_CACHE.mkdir(parents=True, exist_ok=True)
 
-# ─── Step 1: Get S&P 500 tickers ───
-def get_sp500_tickers():
-    cache_file = CACHE / "sp500_tickers.txt"
-    if cache_file.exists():
-        tickers = cache_file.read_text().strip().split('\n')
-        if len(tickers) > 400:
-            print(f"Loaded {len(tickers)} tickers from cache")
-            return tickers
-    
-    # Scrape from Wikipedia
-    import urllib.request
-    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-    try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        html = urllib.request.urlopen(req, timeout=30).read().decode()
-        # Parse table
-        tickers = []
-        rows = html.split('<tbody>')[1].split('</tbody>')[0].split('<tr>')
-        for row in rows[1:]:
-            cols = row.split('<td>')
-            if len(cols) > 1:
-                ticker = cols[1].split('</td>')[0].strip()
-                # Remove HTML tags
-                import re
-                ticker = re.sub(r'<[^>]+>', '', ticker).strip()
-                if ticker:
-                    tickers.append(ticker.replace('.', '-'))  # BRK.B -> BRK-B for yfinance
-        cache_file.write_text('\n'.join(tickers))
-        print(f"Scraped {len(tickers)} tickers from Wikipedia")
-        return tickers
-    except Exception as e:
-        print(f"Error scraping: {e}")
-        # Fallback: use pandas read_html
-        try:
-            tables = pd.read_html(url)
-            tickers = tables[0]['Symbol'].str.replace('.', '-', regex=False).tolist()
-            cache_file.write_text('\n'.join(tickers))
-            print(f"Got {len(tickers)} tickers via pandas")
-            return tickers
-        except:
-            raise RuntimeError("Cannot get S&P 500 tickers")
-
-# ─── Step 2: Download data ───
-def download_data(tickers, start='2014-06-01', end='2025-12-31'):
-    """Download daily OHLCV for all tickers. Cache to CSV."""
-    missing = []
-    cached = 0
-    for t in tickers:
-        f = STOCK_CACHE / f"{t}.csv"
-        if f.exists() and f.stat().st_size > 1000:
-            cached += 1
-            continue
-        missing.append(t)
-    
-    print(f"Cached: {cached}, To download: {len(missing)}")
-    
-    if not missing:
-        return
-    
-    # Download one by one with delays to avoid rate limiting
-    for idx, t in enumerate(missing):
-        f = STOCK_CACHE / f"{t}.csv"
-        if idx % 20 == 0:
-            print(f"Downloading {idx+1}/{len(missing)}: {t}...")
-        try:
-            data = yf.download(t, start=start, end=end, auto_adjust=True, 
-                             progress=False, timeout=15)
-            if not data.empty and len(data) > 100:
-                data.to_csv(f)
-        except Exception as e:
-            if idx % 50 == 0:
-                print(f"  Error {t}: {e}")
-        time.sleep(0.5)  # 500ms delay between requests
-        # Extra pause every 50 to avoid rate limit
-        if (idx + 1) % 50 == 0:
-            print(f"  Pausing 30s to avoid rate limit...")
-            time.sleep(30)
+def load_csv(filepath):
+    """Load CSV, handle both stooq and yfinance formats."""
+    df = pd.read_csv(filepath)
+    if 'Date' in df.columns:
+        df['Date'] = pd.to_datetime(df['Date'])
+        df = df.set_index('Date').sort_index()
+    else:
+        df.index = pd.to_datetime(df.index)
+        df = df.sort_index()
+    # Ensure numeric
+    for col in ['Close', 'Volume', 'Open', 'High', 'Low']:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+    return df
 
 def load_all_data(tickers):
-    """Load all cached data into a dict of DataFrames."""
+    """Load all cached data into DataFrames."""
     close_dict = {}
     volume_dict = {}
+    loaded = 0
     for t in tickers:
         f = STOCK_CACHE / f"{t}.csv"
-        if not f.exists():
+        if not f.exists() or f.stat().st_size < 500:
             continue
         try:
-            df = pd.read_csv(f, index_col=0, parse_dates=True)
-            # Handle multi-level columns from yfinance
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.get_level_values(0)
-            if 'Close' in df.columns and 'Volume' in df.columns:
-                s = df['Close'].dropna()
-                v = df['Volume'].dropna()
-                if len(s) > 200:
-                    close_dict[t] = s
-                    volume_dict[t] = v
+            df = load_csv(f)
+            if 'Close' in df.columns and len(df) > 200:
+                close_dict[t] = df['Close'].dropna()
+                if 'Volume' in df.columns:
+                    volume_dict[t] = df['Volume'].dropna()
+                loaded += 1
         except:
             pass
     
     close_df = pd.DataFrame(close_dict)
     volume_df = pd.DataFrame(volume_dict)
-    print(f"Loaded {len(close_dict)} stocks with sufficient data")
+    print(f"Loaded {loaded} stocks with sufficient data")
     return close_df, volume_df
 
-# ─── Step 3: Backtest Engine ───
 def run_backtest(close_df, volume_df, start='2015-01-01', end='2025-12-31',
-                 top_n=10, cost_per_side=0.0015):
-    """
-    Monthly momentum rotation backtest.
+                 top_n=10, cost_per_trade=0.0015):
+    """Monthly momentum rotation backtest."""
     
-    momentum = 0.25 * ret_1m + 0.40 * ret_3m + 0.35 * ret_6m
-    """
-    close = close_df.loc[start:end].copy()
-    volume = volume_df.reindex(close.index)
+    # Get month-end dates within range
+    close_range = close_df.loc[start:end].dropna(how='all')
+    month_ends = close_range.resample('ME').last().index
     
-    # Monthly end dates
-    monthly = close.resample('ME').last()
-    monthly_dates = monthly.index
-    
-    # We need 6 months of lookback, so start selecting from month 6
-    # But we need data from before start for lookback
-    full_close = close_df.copy()
-    
-    portfolio_values = [1.0]
-    portfolio_dates = [pd.Timestamp(start)]
+    portfolio_values = []
+    portfolio_dates = []
     holdings_history = {}
     turnover_list = []
-    prev_weights = {}
+    prev_holdings = set()
     
-    # Get all month-end dates in the backtest period
-    rebal_dates = monthly_dates[monthly_dates >= start]
+    current_value = 1.0
     
-    for i, date in enumerate(rebal_dates):
+    for i in range(len(month_ends) - 1):
+        date = month_ends[i]
+        next_date = month_ends[i + 1]
+        
         # Calculate momentum scores
         scores = {}
-        for ticker in close.columns:
+        for ticker in close_df.columns:
             try:
-                # Get price history up to this date
-                prices = full_close[ticker].loc[:date].dropna()
-                if len(prices) < 130:  # need ~6 months
+                prices = close_df[ticker].loc[:date].dropna()
+                if len(prices) < 130:
                     continue
                 
                 current_price = prices.iloc[-1]
-                
-                # Price filter
-                if current_price < 5:
+                if np.isnan(current_price) or current_price < 5:
                     continue
                 
-                # Volume filter: current volume vs 20-day average
-                vol_series = volume[ticker].loc[:date].dropna()
-                if len(vol_series) < 20:
-                    continue
-                vol_20 = vol_series.iloc[-20:].mean()
-                if vol_series.iloc[-1] < vol_20 * 0.5:  # relaxed filter
-                    continue
+                # Volume filter (relaxed)
+                if ticker in volume_df.columns:
+                    vol = volume_df[ticker].loc[:date].dropna()
+                    if len(vol) >= 20:
+                        vol_20 = vol.iloc[-20:].mean()
+                        if vol.iloc[-1] < vol_20 * 0.3:
+                            continue
                 
-                # Momentum calculation
-                ret_1m = prices.iloc[-1] / prices.iloc[-21] - 1 if len(prices) > 21 else np.nan
-                ret_3m = prices.iloc[-1] / prices.iloc[-63] - 1 if len(prices) > 63 else np.nan
-                ret_6m = prices.iloc[-1] / prices.iloc[-126] - 1 if len(prices) > 126 else np.nan
+                # Momentum
+                p = prices.values
+                n = len(p)
+                ret_1m = p[-1] / p[-22] - 1 if n > 22 else np.nan
+                ret_3m = p[-1] / p[-63] - 1 if n > 63 else np.nan
+                ret_6m = p[-1] / p[-126] - 1 if n > 126 else np.nan
                 
                 if np.isnan(ret_1m) or np.isnan(ret_3m) or np.isnan(ret_6m):
                     continue
@@ -194,29 +117,23 @@ def run_backtest(close_df, volume_df, start='2015-01-01', end='2025-12-31',
         # Select top N
         sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         selected = [t for t, s in sorted_scores[:top_n]]
+        selected_set = set(selected)
         
-        # Equal weight
-        new_weights = {t: 1.0/top_n for t in selected}
-        
-        # Calculate turnover
-        all_tickers = set(list(prev_weights.keys()) + list(new_weights.keys()))
-        turnover = sum(abs(new_weights.get(t, 0) - prev_weights.get(t, 0)) for t in all_tickers) / 2
+        # Turnover
+        if prev_holdings:
+            changed = len(selected_set - prev_holdings) + len(prev_holdings - selected_set)
+            turnover = changed / (2 * top_n)
+        else:
+            turnover = 1.0
         turnover_list.append(turnover)
         
-        # Record holdings
         holdings_history[date.strftime('%Y-%m')] = selected
         
-        # Calculate return for this month (from this rebal to next)
-        if i + 1 < len(rebal_dates):
-            next_date = rebal_dates[i + 1]
-        else:
-            next_date = close.index[-1]
-        
-        # Portfolio return for this period
+        # Calculate period return
         period_returns = []
         for t in selected:
             try:
-                t_prices = close[t].loc[date:next_date].dropna()
+                t_prices = close_df[t].loc[date:next_date].dropna()
                 if len(t_prices) >= 2:
                     ret = t_prices.iloc[-1] / t_prices.iloc[0] - 1
                     period_returns.append(ret)
@@ -225,120 +142,92 @@ def run_backtest(close_df, volume_df, start='2015-01-01', end='2025-12-31',
             except:
                 period_returns.append(0)
         
-        if period_returns:
-            port_ret = np.mean(period_returns)  # equal weight
-            # Subtract transaction costs
-            cost = turnover * cost_per_side * 2  # buy + sell
-            port_ret -= cost
-            
-            portfolio_values.append(portfolio_values[-1] * (1 + port_ret))
-            portfolio_dates.append(next_date)
+        port_ret = np.mean(period_returns)
+        cost = turnover * cost_per_trade * 2
+        port_ret -= cost
         
-        prev_weights = new_weights
+        current_value *= (1 + port_ret)
+        portfolio_values.append(current_value)
+        portfolio_dates.append(next_date)
+        
+        prev_holdings = selected_set
     
-    # Build equity curve
-    equity = pd.Series(portfolio_values, index=portfolio_dates)
-    
+    equity = pd.Series(portfolio_values, index=pd.DatetimeIndex(portfolio_dates))
     return equity, holdings_history, turnover_list
 
 def compute_metrics(equity, name="Strategy"):
-    """Compute standard performance metrics."""
+    if len(equity) < 2:
+        return {'name': name, 'cagr': 0, 'total_return': 0, 'max_dd': 0, 
+                'sharpe': 0, 'calmar': 0, 'win_rate': 0}
+    
     total_days = (equity.index[-1] - equity.index[0]).days
     total_years = total_days / 365.25
     
     total_return = equity.iloc[-1] / equity.iloc[0] - 1
     cagr = (equity.iloc[-1] / equity.iloc[0]) ** (1/total_years) - 1
     
-    # Monthly returns for Sharpe
-    monthly = equity.resample('ME').last().pct_change().dropna()
+    monthly = equity.pct_change().dropna()
     sharpe = monthly.mean() / monthly.std() * np.sqrt(12) if monthly.std() > 0 else 0
     
-    # Max drawdown
     cummax = equity.cummax()
     drawdown = (equity - cummax) / cummax
     max_dd = drawdown.min()
     
     calmar = cagr / abs(max_dd) if max_dd != 0 else 0
-    
-    # Win rate (monthly)
     win_rate = (monthly > 0).sum() / len(monthly) if len(monthly) > 0 else 0
     
     return {
-        'name': name,
-        'cagr': cagr,
-        'total_return': total_return,
-        'max_dd': max_dd,
-        'sharpe': sharpe,
-        'calmar': calmar,
-        'win_rate': win_rate,
-        'total_years': total_years,
+        'name': name, 'cagr': cagr, 'total_return': total_return,
+        'max_dd': max_dd, 'sharpe': sharpe, 'calmar': calmar, 'win_rate': win_rate,
     }
 
-def get_spy_benchmark(start='2015-01-01', end='2025-12-31'):
-    """Get SPY buy & hold equity curve."""
-    spy_file = CACHE / "stocks" / "SPY.csv"
-    if not spy_file.exists():
-        data = yf.download('SPY', start='2014-06-01', end=end, auto_adjust=True, progress=False)
-        data.to_csv(spy_file)
-    
-    df = pd.read_csv(spy_file, index_col=0, parse_dates=True)
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
-    prices = df['Close'].loc[start:end].dropna()
-    equity = prices / prices.iloc[0]
-    return equity
-
-# ─── Main ───
 def main():
     print("=" * 60)
     print("🐻 代码熊 — 动量轮动选股策略 v1")
     print("=" * 60)
     
-    # Step 1: Get tickers
-    print("\n📋 Step 1: Getting S&P 500 tickers...")
-    tickers = get_sp500_tickers()
+    # Load tickers
+    tickers = (CACHE / "sp500_tickers.txt").read_text().strip().split('\n')
+    print(f"Tickers: {len(tickers)}")
     
-    # Step 2: Download data
-    print("\n📥 Step 2: Downloading stock data...")
-    download_data(tickers)
-    # Also ensure SPY is downloaded
-    download_data(['SPY'])
-    
-    # Step 3: Load data
-    print("\n📊 Step 3: Loading data...")
+    # Load data
     close_df, volume_df = load_all_data(tickers + ['SPY'])
     
-    # Step 4: Run full backtest
-    print("\n🔄 Step 4: Running full backtest (2015-2025)...")
-    equity_full, holdings_full, turnover_full = run_backtest(close_df, volume_df, 
-                                                              start='2015-01-01', end='2025-12-31')
+    # Full backtest
+    print("\n🔄 Running full backtest (2015-2025)...")
+    eq_full, hold_full, to_full = run_backtest(close_df, volume_df, '2015-01-01', '2025-12-31')
     
-    # Step 5: Walk-forward
-    print("\n🔬 Step 5: Walk-forward validation...")
-    equity_is, holdings_is, turnover_is = run_backtest(close_df, volume_df,
-                                                        start='2015-01-01', end='2020-12-31')
-    equity_oos, holdings_oos, turnover_oos = run_backtest(close_df, volume_df,
-                                                           start='2021-01-01', end='2025-12-31')
+    # Walk-forward
+    print("🔬 Walk-forward: IS (2015-2020)...")
+    eq_is, hold_is, to_is = run_backtest(close_df, volume_df, '2015-01-01', '2020-12-31')
+    print("🔬 Walk-forward: OOS (2021-2025)...")
+    eq_oos, hold_oos, to_oos = run_backtest(close_df, volume_df, '2021-01-01', '2025-12-31')
     
-    # Step 6: Benchmarks
-    print("\n📈 Step 6: Computing benchmarks...")
-    spy_full = get_spy_benchmark('2015-01-01', '2025-12-31')
-    spy_is = get_spy_benchmark('2015-01-01', '2020-12-31')
-    spy_oos = get_spy_benchmark('2021-01-01', '2025-12-31')
+    # SPY benchmark
+    spy_prices = close_df['SPY'].loc['2015-01-01':'2025-12-31'].dropna()
+    spy_monthly = spy_prices.resample('ME').last()
+    spy_eq = spy_monthly / spy_monthly.iloc[0]
     
-    # Step 7: Metrics
+    spy_is = spy_prices.loc['2015-01-01':'2020-12-31'].resample('ME').last()
+    spy_is = spy_is / spy_is.iloc[0]
+    spy_oos = spy_prices.loc['2021-01-01':'2025-12-31'].resample('ME').last()
+    spy_oos = spy_oos / spy_oos.iloc[0]
+    
+    # Metrics
     print("\n" + "=" * 60)
     print("📊 RESULTS")
     print("=" * 60)
     
-    m_full = compute_metrics(equity_full, "Momentum Top10 (Full)")
-    m_spy = compute_metrics(spy_full, "SPY Buy&Hold (Full)")
-    m_is = compute_metrics(equity_is, "Momentum (IS 2015-2020)")
-    m_oos = compute_metrics(equity_oos, "Momentum (OOS 2021-2025)")
-    m_spy_is = compute_metrics(spy_is, "SPY (IS 2015-2020)")
-    m_spy_oos = compute_metrics(spy_oos, "SPY (OOS 2021-2025)")
+    results_list = [
+        compute_metrics(eq_full, "Momentum Top10 (Full 2015-2025)"),
+        compute_metrics(spy_eq, "SPY Buy&Hold (Full 2015-2025)"),
+        compute_metrics(eq_is, "Momentum (IS 2015-2020)"),
+        compute_metrics(spy_is, "SPY (IS 2015-2020)"),
+        compute_metrics(eq_oos, "Momentum (OOS 2021-2025)"),
+        compute_metrics(spy_oos, "SPY (OOS 2021-2025)"),
+    ]
     
-    for m in [m_full, m_spy, m_is, m_oos, m_spy_is, m_spy_oos]:
+    for m in results_list:
         print(f"\n--- {m['name']} ---")
         print(f"  CAGR:      {m['cagr']:.1%}")
         print(f"  Total Ret: {m['total_return']:.1%}")
@@ -347,54 +236,54 @@ def main():
         print(f"  Calmar:    {m['calmar']:.2f}")
         print(f"  Win Rate:  {m['win_rate']:.1%}")
     
-    # Turnover
-    avg_turnover = np.mean(turnover_full) if turnover_full else 0
-    print(f"\n📊 Average Monthly Turnover: {avg_turnover:.1%}")
+    avg_to = np.mean(to_full) if to_full else 0
+    print(f"\n📊 Avg Monthly Turnover: {avg_to:.1%}")
     
     # Walk-forward check
+    m_is = results_list[2]
+    m_oos = results_list[4]
     ratio = m_oos['sharpe'] / m_is['sharpe'] if m_is['sharpe'] != 0 else 0
-    print(f"\n🔬 Walk-forward: OOS Sharpe / IS Sharpe = {ratio:.2f} (target >= 0.70)")
+    print(f"\n🔬 OOS/IS Sharpe ratio: {ratio:.2f} (target >= 0.70)")
     print(f"   {'✅ PASS' if ratio >= 0.7 else '❌ FAIL'}")
     
-    # Holdings analysis
-    print("\n📋 Most Selected Stocks:")
-    all_holdings = []
-    for month, stocks in holdings_full.items():
-        all_holdings.extend(stocks)
-    from collections import Counter
-    freq = Counter(all_holdings).most_common(20)
+    # Most selected stocks
+    print("\n📋 Most Selected Stocks (Full Period):")
+    all_h = []
+    for stocks in hold_full.values():
+        all_h.extend(stocks)
+    freq = Counter(all_h).most_common(20)
+    total_months = len(hold_full)
     for ticker, count in freq:
-        total_months = len(holdings_full)
         print(f"  {ticker:6s}: {count:3d}/{total_months} months ({count/total_months:.0%})")
     
     # Sample holdings
-    for year_month in ['2020-03', '2023-06', '2024-12']:
-        if year_month in holdings_full:
-            print(f"\n📅 {year_month} Top 10: {', '.join(holdings_full[year_month])}")
+    for ym in ['2020-03', '2023-06', '2024-12', '2024-06']:
+        if ym in hold_full:
+            print(f"\n📅 {ym} Top 10: {', '.join(hold_full[ym])}")
     
-    # Check 2023-2024 for NVDA, TSLA etc
-    print("\n🔍 NVDA/TSLA appearances in 2023-2024:")
-    for ym, stocks in sorted(holdings_full.items()):
+    # Hot stocks in 2023-2024
+    print("\n🔍 Hot stocks (NVDA/TSLA/META/AVGO/AMD) in 2023-2024:")
+    hot_set = {'NVDA', 'TSLA', 'META', 'AMZN', 'AAPL', 'MSFT', 'GOOG', 'GOOGL', 'AVGO', 'AMD'}
+    for ym in sorted(hold_full.keys()):
         if ym.startswith('2023') or ym.startswith('2024'):
-            hot = [s for s in stocks if s in ['NVDA', 'TSLA', 'META', 'AMZN', 'AAPL', 'MSFT', 'GOOG', 'GOOGL', 'AVGO', 'AMD']]
+            hot = [s for s in hold_full[ym] if s in hot_set]
             if hot:
                 print(f"  {ym}: {', '.join(hot)}")
     
-    # Save results to JSON for report
+    # Save results
     results = {
-        'full': m_full, 'spy': m_spy,
-        'is': m_is, 'oos': m_oos,
-        'spy_is': m_spy_is, 'spy_oos': m_spy_oos,
-        'avg_turnover': avg_turnover,
-        'wf_ratio': ratio,
+        'full': results_list[0], 'spy': results_list[1],
+        'is': results_list[2], 'oos': results_list[4],
+        'spy_is': results_list[3], 'spy_oos': results_list[5],
+        'avg_turnover': avg_to, 'wf_ratio': ratio,
         'top_stocks': freq[:15],
-        'holdings_sample': {k: v for k, v in holdings_full.items() if k in ['2020-03','2023-06','2024-12']},
+        'holdings': hold_full,
     }
     
-    results_file = BASE / "stocks" / "codebear" / "momentum_v1_results.json"
-    with open(results_file, 'w') as f:
+    out = BASE / "stocks" / "codebear" / "momentum_v1_results.json"
+    with open(out, 'w') as f:
         json.dump(results, f, indent=2, default=str)
-    print(f"\n💾 Results saved to {results_file}")
+    print(f"\n💾 Saved to {out}")
     
     return results
 
