@@ -1,0 +1,49 @@
+{
+  "strategy": "v9e GDX-compete+vol + GLD-compete+DD + v9c base",
+  "full": {
+    "cagr": 0.33306529136701557,
+    "max_dd": -0.1488892552631864,
+    "sharpe": 1.638564379406848,
+    "calmar": 2.2370001836483606
+  },
+  "is": {
+    "cagr": 0.34034993000961666,
+    "max_dd": -0.1488892552631864,
+    "sharpe": 1.6814573029896804,
+    "calmar": 2.2859267407039674
+  },
+  "oos": {
+    "cagr": 0.29874285553907476,
+    "max_dd": -0.09708417533341052,
+    "sharpe": 1.4746665347163888,
+    "calmar": 3.0771529398392645
+  },
+  "wf": 0.8770169376851784,
+  "composite": 1.6168388834954868,
+  "turnover": 0.6185706078149751,
+  "params": {
+    "mom_weights": {
+      "1m": 0.2,
+      "3m": 0.5,
+      "6m": 0.2,
+      "12m": 0.1
+    },
+    "gld_compete_thresh": 0.7,
+    "gld_compete_frac": 0.2,
+    "gdx_compete_thresh": 0.3,
+    "gdx_compete_frac": 0.1,
+    "gdx_vol_low": 0.3,
+    "gdx_vol_low_frac": 0.12,
+    "gdx_vol_high": 0.45,
+    "gdx_vol_high_frac": 0.25,
+    "dd_params": {
+      "-0.08": 0.4,
+      "-0.12": 0.6,
+      "-0.18": 0.7
+    },
+    "hi52_frac": 0.6,
+    "use_shy": true,
+    "n_bull_secs": 5,
+    "bull_sps": 2
+  }
+}

@@ -8,18 +8,54 @@
 
 | Rank | Strategy | CAGR | MaxDD | Sharpe | Calmar | Composite | WF |
 |------|----------|------|-------|--------|--------|-----------|-----|
-| 1 | **Stock v9c Vol+DD+52w+SHY** 🏆🆕🆕 | **31.6%** | -14.9% | **1.64** | **2.12** | **1.567** | ✅ 0.89 |
-| 2 | Stock v9b 52w-Hi+SHY ⭐⭐⭐⭐ | 30.9% | -14.9% | 1.60 | 2.08 | 1.533 | ✅ 0.89 |
-| 3 | Stock v9a 3m-Dom+5Sec+Breadth45 ⭐⭐⭐ | 30.5% | -14.9% | 1.57 | 2.05 | 1.512 | ✅ 0.86 |
-| 4 | Stock v8d Breadth+GLD ⭐⭐ | 28.8% | -15.0% | 1.58 | 1.92 | 1.460 | ✅ 0.90 |
-| 5 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 |
-| 6 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 |
-| 7 | Stock v3c 5Sector | 22.4% | -14.7% | 1.27 | 1.52 | 1.162 | ✅ 1.00 |
-| 8 | Stock v3d Blend50 | 27.8% | -20.3% | 1.37 | 1.37 | 1.151 | ✅ 0.75 |
-| 9 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ |
-| 10 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.143 | ✅ 0.94 |
+| 1 | **Stock v9e GDX-Compete+Vol** 🏆🆕 | **33.3%** | -14.9% | **1.64** | **2.24** | **1.617** | ✅ 0.88 |
+| 2 | Stock v9d GDX-Vol ⭐⭐⭐⭐ | 32.3% | -14.9% | 1.64 | 2.17 | 1.589 | ✅ 0.88 |
+| 3 | Stock v9c Vol+DD+52w+SHY ⭐⭐⭐⭐ | 31.6% | -14.9% | 1.64 | 2.12 | 1.567 | ✅ 0.89 |
+| 4 | Stock v9b 52w-Hi+SHY ⭐⭐⭐ | 30.9% | -14.9% | 1.60 | 2.08 | 1.533 | ✅ 0.89 |
+| 5 | Stock v9a 3m-Dom+5Sec+Breadth45 ⭐⭐⭐ | 30.5% | -14.9% | 1.57 | 2.05 | 1.512 | ✅ 0.86 |
+| 6 | Stock v8d Breadth+GLD ⭐⭐ | 28.8% | -15.0% | 1.58 | 1.92 | 1.460 | ✅ 0.90 |
+| 7 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 |
+| 8 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 |
+| 9 | Stock v3c 5Sector | 22.4% | -14.7% | 1.27 | 1.52 | 1.162 | ✅ 1.00 |
+| 10 | Stock v3d Blend50 | 27.8% | -20.3% | 1.37 | 1.37 | 1.151 | ✅ 0.75 |
+| 11 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ |
+| 12 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.143 | ✅ 0.94 |
 
-## 🏆 CURRENT CHAMPION: Stock v9c — Vol+DD+52w+SHY Complete System
+## 🏆 CURRENT CHAMPION: Stock v9e — GDX Dual-Role (Compete + Vol-Trigger)
+
+**File**: `stocks/codebear/momentum_v9e_final.py`
+**Period**: 2015-01 → 2025-12
+
+**Key metrics**:
+- CAGR **33.3%** ✅ | Sharpe **1.64** ✅ | MaxDD **-14.9%** ✅ | Calmar **2.24**
+- Walk-Forward: IS 1.68, OOS 1.47, ratio **0.88** ✅
+- Composite: **1.617** ✅ (vs v9c 1.567, +0.050; vs v4d 1.356, +0.261)
+
+**Key Innovation (v9e)**: GDX serves TWO roles simultaneously:
+1. **Natural Competition**: When GDX 6m-momentum ≥ 30% of avg stock → 10% GDX
+   - Captures gold miner alpha during gold bull markets (48% of months)
+   - GDX has 2-3x operating leverage vs GLD, amplifying gold alpha
+2. **Vol-Trigger Hedge**: SPY 5-day vol > 30% → 12% GDX; > 45% → 25% GDX
+   - Pre-emptive positioning before crashes fully develop
+
+**On top of v9c foundation (8 stacked innovations)**:
+- 3m-dominant momentum (50% weight), 5×2=10 stocks, breadth 45% threshold
+- 52w-high proximity filter (price ≥ 60% of 52w high)  
+- SHY for bear cash, GLD natural competition (70% threshold → 20%)
+- Aggressive DD response (-8%→40%GLD, -12%→60%GLD, -18%→70%GLD)
+
+**vs v9c (Previous Champion)**:
+| Metric | v9c | v9e | Improvement |
+|--------|-----|-----|-------------|
+| CAGR | 31.6% | **33.3%** | **+1.7pp** ✅ |
+| Sharpe | 1.64 | 1.64 | same |
+| Calmar | 2.12 | **2.24** | **+0.12** ✅ |
+| WF | 0.89 | 0.88 | -0.01 (≈same) |
+| Composite | 1.567 | **1.617** | **+0.050** ✅ |
+
+---
+
+## Previous Champion: Stock v9c — Vol+DD+52w+SHY Complete System
 
 **File**: `stocks/codebear/momentum_v9c_final.py`
 **Period**: 2015-01 → 2025-12
