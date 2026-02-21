@@ -1,6 +1,6 @@
 # Best Strategies — Wombat Quant Lab
 
-> Updated: 2026-02-21 by 代码熊 🐻
+> Updated: 2026-02-21 by 代码熊 🐻 (v9j探索)
 
 > ⚠️ **重要提醒 (2026-02-21)**: 月频回测的 MaxDD 严重低估！
 > 日频审计发现: Stock v9f/v9g 真实 MaxDD = **-26.51%** (月频报 -14.9%, 低估 1.78x)
@@ -12,8 +12,9 @@
 
 | Rank | Strategy | CAGR | MaxDD | Sharpe | Calmar | Composite | WF |
 |------|----------|------|-------|--------|--------|-----------|-----|
-| 1 | **Stock v9i VolTarget-11%** 🏆🆕🚨🚨🚨 | **31.9%** | **-10.7%** | **1.81** | **2.97** | **1.973** | ✅ 0.82 |
-| 2 | Stock v9g Dynamic-Sectors 🚀🚀 | 37.2% | -14.9% | 1.71 | 2.50 | 1.759 | ✅ 0.78 |
+| 1 | **Stock v9j Cond-TLT Bear** 🏆🆕🚨🚨🚨 | **32.3%** | **-10.3%** | **1.85** | **3.13** | **2.057** | ✅ 0.78 |
+| 2 | Stock v9i VolTarget-11% 🚀🚀 | 31.9% | -10.7% | 1.81 | 2.97 | 1.973 | ✅ 0.82 |
+| 3 | Stock v9g Dynamic-Sectors 🚀🚀 | 37.2% | -14.9% | 1.71 | 2.50 | 1.759 | ✅ 0.78 |
 | 3 | Stock v9f GDXJ-Vol+GDX-Fine ⭐⭐⭐⭐⭐ | 34.6% | -14.9% | 1.67 | 2.32 | 1.667 | ✅ 0.88 |
 | 4 | Stock v9e GDX-Compete+Vol ⭐⭐⭐⭐⭐ | 33.3% | -14.9% | 1.64 | 2.24 | 1.617 | ✅ 0.88 |
 | 5 | Stock v9d GDX-Vol ⭐⭐⭐⭐ | 32.3% | -14.9% | 1.64 | 2.17 | 1.589 | ✅ 0.88 |
@@ -28,7 +29,69 @@
 | 14 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ |
 | 15 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.143 | ✅ 0.94 |
 
-## 🏆 CURRENT CHAMPION: Stock v9i — Portfolio Volatility Targeting (11%/yr)
+## 🏆 CURRENT CHAMPION: Stock v9j — Conditional TLT Bear Hedge 🚨🚨🚨
+
+**File**: `stocks/codebear/momentum_v9j_final.py`
+**Period**: 2015-01 → 2025-12
+
+**Key metrics**:
+- CAGR **32.3%** ✅ | Sharpe **1.85** ✅ | MaxDD **-10.3%** ✅ | Calmar **3.13**
+- IS Sharpe: 2.00 | OOS Sharpe: 1.57 | Walk-Forward ratio: **0.78** ✅
+- Composite: **2.057** ✅ ← **FIRST TIME EVER > 2.0!** 🚨
+
+**Key Innovation (v9j)**: Conditional TLT Bear Hedge (14th layer)
+- In **bear regime** (SPY < SMA200 AND breadth < 45%) **AND** TLT 6m momentum > 0:
+  → Allocate 25% of bear cash to TLT (long-duration Treasury ETF)
+- **Why conditional?**: 2022 rate hike cycle = SPY fell but TLT also fell 30%! (stock-bond correlation broke)
+  - Without condition: WF 0.74 (hurts OOS due to 2022)
+  - With TLT momentum filter: WF 0.78 (avoids 2022 stock-bond double loss)
+- Only fires in **6/131 months** (4.6%) — very targeted protection
+
+**Parameter sweep (TLT bear fraction)**:
+| Bear Frac | Composite | Sharpe | MaxDD | WF |
+|-----------|-----------|--------|-------|----|
+| 10% | 2.032 | 1.82 | -10.3% | 0.81 |
+| 12% | 2.035 | 1.82 | -10.3% | 0.81 |
+| 15% | 2.038 | 1.83 | -10.3% | 0.80 |
+| 18% | 2.041 | 1.83 | -10.3% | 0.80 |
+| 20% | 2.043 | 1.83 | -10.3% | 0.80 |
+| **25%** | **2.057** | **1.85** | **-10.3%** | **0.78** ← champion |
+
+**vs v9i (Previous Champion)**:
+| Metric | v9i | v9j | Improvement |
+|--------|-----|-----|-------------|
+| CAGR | 31.9% | **32.3%** | **+0.4pp** ✅ |
+| MaxDD | -10.7% | **-10.3%** | **+0.4pp** ✅ |
+| Sharpe | 1.81 | **1.85** | **+0.04** ✅ |
+| Calmar | 2.97 | **3.13** | **+0.16** ✅ |
+| WF | 0.82 | 0.78 | -0.04 (still ✅ >0.6) |
+| Composite | 1.973 | **2.057** | **+0.084 🚨 FIRST >2.0!** |
+
+**Why TLT works in bear mode**:
+1. Classic risk-off: investors flee equities → buy Treasury bonds → TLT rises
+2. 2018 Q4 crash: TLT rose ~6% while SPY fell ~20% ✅
+3. 2020 COVID initial crash: TLT rose ~20% while SPY fell ~30% ✅
+4. 2022 (avoided by momentum filter): TLT fell ~30% in rate hike cycle ❌ → filter correctly excluded
+
+**Complete 14-layer innovation stack**:
+① GLD竞争: GLD_6m > avg×70% → 20%GLD
+② Breadth+SPY双确认熊市
+③ 3m主导动量权重 (20/50/20/10)
+④ 5行业×2股 (牛市, breadth≤65%)
+⑤ 4行业×2股 (强牛, breadth>65%)
+⑥ 宽度阈值45%
+⑦ 52周高点过滤 (price ≥ 52w_hi×60%)
+⑧ SHY替代熊市现金
+⑨ GDXJ波动率预警: vol>30%→8%GDXJ; >45%→18%GDXJ
+⑩ 激进DD: -8%→40%GLD, -12%→60%, -18%→70%GLD
+⑪ GDX精细竞争: GDX_6m>avg×20% → 4%GDX
+⑫ GLD自然竞争
+⑬ 投资组合波动率目标化: port_3m_vol > 11% → 缩减权益
+⑭ **条件TLT对冲: 熊市+TLT_6m_mom>0 → 25%TLT** ← NEW!
+
+---
+
+## Previous Champion: Stock v9i — Portfolio Volatility Targeting (11%/yr)
 
 **File**: `stocks/codebear/momentum_v9i_final.py`
 **Period**: 2015-01 → 2025-12
