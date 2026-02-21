@@ -1,0 +1,41 @@
+{
+  "strategy": "v9f GDXJ-vol(8%/18%) + GDX-compete(20%/4%) + v9c-base",
+  "full": {
+    "cagr": 0.34588481612730715,
+    "max_dd": -0.14888925526318636,
+    "sharpe": 1.6716051569445756,
+    "calmar": 2.3231012574809284
+  },
+  "is": {
+    "cagr": 0.34808261400520957,
+    "max_dd": -0.14888925526318636,
+    "sharpe": 1.7178483199186079,
+    "calmar": 2.337862550188165
+  },
+  "oos": {
+    "cagr": 0.3177106177504301,
+    "max_dd": -0.10458775179583814,
+    "sharpe": 1.5096307646659985,
+    "calmar": 3.0377421093305568
+  },
+  "wf": 0.8787916530008454,
+  "composite": 1.6670595289956631,
+  "turnover": 0.6295350830345119,
+  "params": {
+    "gdxj_vol_lo_thresh": 0.3,
+    "gdxj_vol_lo_frac": 0.08,
+    "gdxj_vol_hi_thresh": 0.45,
+    "gdxj_vol_hi_frac": 0.18,
+    "gdx_compete_thresh": 0.2,
+    "gdx_compete_frac": 0.04,
+    "gld_compete_thresh": 0.7,
+    "gld_compete_frac": 0.2,
+    "dd_params": {
+      "-0.08": 0.4,
+      "-0.12": 0.6,
+      "-0.18": 0.7
+    },
+    "hi52_frac": 0.6,
+    "use_shy": true
+  }
+}
