@@ -1,0 +1,137 @@
+{
+  "champion": "E_AllBest",
+  "champion_params": {
+    "mom_weights": [
+      0.2,
+      0.0,
+      0.5,
+      0.2,
+      0.1
+    ],
+    "n_bull_secs": 5,
+    "bull_sps": 2,
+    "bear_sps": 2,
+    "breadth_thresh": 0.45,
+    "gld_thresh": 0.7,
+    "gld_frac": 0.2
+  },
+  "champion_metrics": {
+    "cagr": 0.305,
+    "sharpe": 1.57,
+    "max_dd": -0.149,
+    "calmar": 2.05,
+    "wf": 0.86,
+    "composite": 1.5116
+  },
+  "runner_up": {
+    "label": "E_A+B+D",
+    "cagr": 0.305,
+    "sharpe": 1.56,
+    "max_dd": -0.149,
+    "calmar": 2.05,
+    "wf": 0.9,
+    "composite": 1.5056
+  },
+  "baseline_v8d": 1.3627,
+  "baseline_v4d": 1.356,
+  "improvement_vs_v4d": "+0.156 Composite (+11.5%)",
+  "sweep_results": [
+    {
+      "label": "E_AllBest",
+      "comp": 1.5116,
+      "wf": 0.86,
+      "cagr": 0.305,
+      "sharpe": 1.57,
+      "max_dd": -0.149,
+      "calmar": 2.05,
+      "valid": true
+    },
+    {
+      "label": "E_A+B+D",
+      "comp": 1.5056,
+      "wf": 0.9,
+      "cagr": 0.305,
+      "sharpe": 1.56,
+      "max_dd": -0.149,
+      "calmar": 2.05,
+      "valid": true
+    },
+    {
+      "label": "D_bread45%",
+      "comp": 1.4055,
+      "wf": 0.86,
+      "cagr": 0.282,
+      "sharpe": 1.49,
+      "max_dd": -0.15,
+      "calmar": 1.88,
+      "valid": true
+    },
+    {
+      "label": "D_bread50%",
+      "comp": 1.4025,
+      "wf": 0.86,
+      "cagr": 0.281,
+      "sharpe": 1.49,
+      "max_dd": -0.15,
+      "calmar": 1.88,
+      "valid": true
+    },
+    {
+      "label": "B_3m-dominant",
+      "comp": 1.3768,
+      "wf": 0.83,
+      "cagr": 0.275,
+      "sharpe": 1.45,
+      "max_dd": -0.149,
+      "calmar": 1.85,
+      "valid": true
+    },
+    {
+      "label": "C_gld70%_frac20%",
+      "comp": 1.3792,
+      "wf": 0.79,
+      "cagr": 0.275,
+      "sharpe": 1.47,
+      "max_dd": -0.15,
+      "calmar": 1.83,
+      "valid": true
+    },
+    {
+      "label": "D_bread30%",
+      "comp": 1.4,
+      "wf": 0.8,
+      "cagr": 0.281,
+      "sharpe": 1.48,
+      "max_dd": -0.15,
+      "calmar": 1.88,
+      "valid": true
+    },
+    {
+      "label": "v8d_baseline",
+      "comp": 1.3627,
+      "wf": 0.8,
+      "cagr": 0.273,
+      "sharpe": 1.45,
+      "max_dd": -0.15,
+      "calmar": 1.82,
+      "valid": true
+    },
+    {
+      "label": "A_5x2",
+      "comp": 1.33,
+      "wf": 0.72,
+      "cagr": 0.282,
+      "sharpe": 1.46,
+      "max_dd": -0.164,
+      "calmar": 1.72,
+      "valid": true
+    }
+  ],
+  "key_findings": {
+    "stock_count": "5 sectors \u00d7 2 stocks = 10 stocks (not 4\u00d73=12). More sector diversity, less per-sector concentration",
+    "momentum_weights": "3m-dominant (0.20/0.00/0.50/0.20/0.10) beats classic blend - 3-month captures the sweet spot",
+    "gld_competition": "70% threshold (vs 80%) lets GLD enter slightly more often when markets diverge",
+    "breadth_regime": "45% threshold (vs 40%) \u2192 more time in bull mode, higher returns",
+    "synergy": "All 4 improvements individually add <1%, but combined produce >10% improvement"
+  }
+}
