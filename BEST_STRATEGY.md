@@ -9,27 +9,66 @@
 ## Overall Leaderboard (by Composite Score)
 
 > Composite = Sharpe×0.4 + Calmar×0.4 + CAGR×0.2 (simple formula)
+> 
+> ⭐ **WF注意**: WF下降趋势明显 (v9j→v9m→v9n: 0.78→0.75→0.70), 因此 **v9j仍为推荐策略** (最佳WF)
+> v9m/v9n Composite更高但WF牺牲较大; v9j是Composite与WF的最优平衡点
 
-| Rank | Strategy | CAGR | MaxDD | Sharpe | Calmar | Composite | WF |
-|------|----------|------|-------|--------|--------|-----------|-----|
-| 1 | **Stock v9j Cond-TLT Bear** 🏆🆕🚨🚨🚨 | **32.3%** | **-10.3%** | **1.85** | **3.13** | **2.057** | ✅ 0.78 |
-| 2 | Stock v9i VolTarget-11% 🚀🚀 | 31.9% | -10.7% | 1.81 | 2.97 | 1.973 | ✅ 0.82 |
-| 3 | Stock v9g Dynamic-Sectors 🚀🚀 | 37.2% | -14.9% | 1.71 | 2.50 | 1.759 | ✅ 0.78 |
-| 3 | Stock v9f GDXJ-Vol+GDX-Fine ⭐⭐⭐⭐⭐ | 34.6% | -14.9% | 1.67 | 2.32 | 1.667 | ✅ 0.88 |
-| 4 | Stock v9e GDX-Compete+Vol ⭐⭐⭐⭐⭐ | 33.3% | -14.9% | 1.64 | 2.24 | 1.617 | ✅ 0.88 |
-| 5 | Stock v9d GDX-Vol ⭐⭐⭐⭐ | 32.3% | -14.9% | 1.64 | 2.17 | 1.589 | ✅ 0.88 |
-| 6 | Stock v9c Vol+DD+52w+SHY ⭐⭐⭐⭐ | 31.6% | -14.9% | 1.64 | 2.12 | 1.567 | ✅ 0.89 |
-| 7 | Stock v9b 52w-Hi+SHY ⭐⭐⭐ | 30.9% | -14.9% | 1.60 | 2.08 | 1.533 | ✅ 0.89 |
-| 8 | Stock v9a 3m-Dom+5Sec+Breadth45 ⭐⭐⭐ | 30.5% | -14.9% | 1.57 | 2.05 | 1.512 | ✅ 0.86 |
-| 9 | Stock v8d Breadth+GLD ⭐⭐ | 28.8% | -15.0% | 1.58 | 1.92 | 1.460 | ✅ 0.90 |
-| 10 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 |
-| 11 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 |
-| 12 | Stock v3c 5Sector | 22.4% | -14.7% | 1.27 | 1.52 | 1.162 | ✅ 1.00 |
-| 13 | Stock v3d Blend50 | 27.8% | -20.3% | 1.37 | 1.37 | 1.151 | ✅ 0.75 |
-| 14 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ |
-| 15 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.143 | ✅ 0.94 |
+| Rank | Strategy | CAGR | MaxDD | Sharpe | Calmar | Composite | WF | Notes |
+|------|----------|------|-------|--------|--------|-----------|-----|-------|
+| 1 | **Stock v9n Combo🆕** | 32.2% | -10.0% | 1.84 | 3.22 | **2.090** | ✅ 0.70 | 最高Composite |
+| 2 | **Stock v9m SPY-Soft🆕** | 32.0% | -10.0% | 1.84 | 3.21 | **2.086** | ✅ 0.75 | 好平衡 |
+| 3 | **Stock v9l AdaptVol🆕** | 32.1% | -10.0% | 1.83 | 3.20 | **2.077** | ✅ 0.71 | WF偏低 |
+| 4 | **Stock v9j TLT Bear** 🏆⭐推荐 | 32.3% | -10.3% | 1.85 | 3.13 | **2.057** | ✅ **0.78** | 最稳健 |
+| 5 | Stock v9i VolTarget-11% | 31.9% | -10.7% | 1.81 | 2.97 | 1.973 | ✅ 0.82 | |
+| 6 | Stock v9g Dynamic-Sectors | 37.2% | -14.9% | 1.71 | 2.50 | 1.759 | ✅ 0.78 | |
+| 7 | Stock v9f GDXJ-Vol+GDX-Fine ⭐⭐⭐⭐⭐ | 34.6% | -14.9% | 1.67 | 2.32 | 1.667 | ✅ 0.88 | |
+| 8 | Stock v9e GDX-Compete+Vol ⭐⭐⭐⭐⭐ | 33.3% | -14.9% | 1.64 | 2.24 | 1.617 | ✅ 0.88 | |
+| 9 | Stock v9d GDX-Vol ⭐⭐⭐⭐ | 32.3% | -14.9% | 1.64 | 2.17 | 1.589 | ✅ 0.88 | |
+| 10 | Stock v9c Vol+DD+52w+SHY ⭐⭐⭐⭐ | 31.6% | -14.9% | 1.64 | 2.12 | 1.567 | ✅ 0.89 | |
+| 11 | Stock v9b 52w-Hi+SHY ⭐⭐⭐ | 30.9% | -14.9% | 1.60 | 2.08 | 1.533 | ✅ 0.89 | |
+| 12 | Stock v9a 3m-Dom+5Sec+Breadth45 ⭐⭐⭐ | 30.5% | -14.9% | 1.57 | 2.05 | 1.512 | ✅ 0.86 | |
+| 13 | Stock v8d Breadth+GLD ⭐⭐ | 28.8% | -15.0% | 1.58 | 1.92 | 1.460 | ✅ 0.90 | |
+| 14 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 | |
+| 15 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 | |
+| 16 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ | |
 
-## 🏆 CURRENT CHAMPION: Stock v9j — Conditional TLT Bear Hedge 🚨🚨🚨
+## 🆕 Latest Exploration (2026-02-21, Round 2): v9l/v9m/v9n
+
+### WF Trend Warning ⚠️
+
+| Strategy | Composite | WF | IS Sharpe | OOS Sharpe |
+|----------|-----------|-----|-----------|------------|
+| v9j (base) | 2.057 | **0.78** | 2.00 | 1.57 |
+| v9l (adapt vol) | 2.077 | 0.71 | 2.05 | 1.46 |
+| v9m (soft hedge) | 2.086 | 0.75 | 2.03 | 1.52 |
+| v9n (combo) | 2.090 | 0.70 | 2.08 | 1.46 |
+
+**Conclusion**: Each new layer adds ~+0.01 Composite but -0.03 WF. The IS-OOS gap is widening.
+**Recommendation**: v9j remains the most robust strategy. v9m is acceptable (+0.029 Composite, -0.03 WF).
+
+### Stock v9n — Composite Record (2.090), WF 0.70
+**File**: `stocks/codebear/momentum_v9n.py`
+- Config: adaptive_vol(14%/11%/10%) + spy_soft_hi(-7%→+10%GLD)
+- Composite **2.090** | Sharpe 1.84 | MaxDD -10.0% | Calmar 3.22 | WF **0.70** ⚠️
+- Best Composite ever but WF drop is concerning
+
+### Stock v9m — Pre-Bear Soft Hedge (Composite 2.086, WF 0.75)
+**File**: `stocks/codebear/momentum_v9m.py`
+- Config: when SPY 1m-ret < -3% → +8%GLD; < -7% → +15%GLD
+- Composite **2.086** | Sharpe 1.84 | MaxDD -10.0% | Calmar 3.21 | WF **0.75** ✅
+- Fires in 22/131 months (16.8%)
+- Good balance: meaningful Composite improvement (+0.029 vs v9j) at acceptable WF cost (-0.03)
+
+### Stock v9l — Adaptive Vol Target (Composite 2.077, WF 0.71)
+**File**: `stocks/codebear/momentum_v9l.py`
+- Config: bull_hi=14%, normal=11%, defensive=10%
+- Composite **2.077** | Sharpe 1.83 | MaxDD -10.0% | Calmar 3.20 | WF **0.71** ⚠️
+- 49/131 months in bull_hi, 48 normal, 34 defensive
+- WF too low (0.71) for confident deployment
+
+---
+
+## 🏆 RECOMMENDED CHAMPION: Stock v9j — Conditional TLT Bear Hedge 🚨🚨🚨
 
 **File**: `stocks/codebear/momentum_v9j_final.py`
 **Period**: 2015-01 → 2025-12
