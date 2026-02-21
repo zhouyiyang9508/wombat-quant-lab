@@ -1,0 +1,46 @@
+{
+  "strategy": "v9g Dynamic Sector Concentration (breadth>0.65\u21924secs)",
+  "full": {
+    "cagr": 0.3717708585028201,
+    "max_dd": -0.14876688079188474,
+    "sharpe": 1.7122950308387006,
+    "calmar": 2.499016289942272
+  },
+  "is": {
+    "cagr": 0.40273089682314844,
+    "max_dd": -0.14876688079188474,
+    "sharpe": 1.856435343806145,
+    "calmar": 2.7071273839944454
+  },
+  "oos": {
+    "cagr": 0.31281643536129944,
+    "max_dd": -0.10885776402446933,
+    "sharpe": 1.449465299196256,
+    "calmar": 2.873625396999554
+  },
+  "wf": 0.7807787672392074,
+  "composite": 1.758878700012953,
+  "turnover": 0.63850279530779,
+  "params": {
+    "breadth_conc_thresh": 0.65,
+    "n_bull_secs": 5,
+    "n_bull_secs_hi": 4,
+    "mom_w": [
+      0.2,
+      0.5,
+      0.2,
+      0.1
+    ],
+    "hi52_frac": 0.6,
+    "gdxj_vol_lo": 0.08,
+    "gdxj_vol_hi": 0.18,
+    "dd_params": {
+      "-0.08": 0.4,
+      "-0.12": 0.6,
+      "-0.18": 0.7
+    },
+    "gld_compete": 0.2,
+    "gdx_compete": 0.04,
+    "use_shy": true
+  }
+}

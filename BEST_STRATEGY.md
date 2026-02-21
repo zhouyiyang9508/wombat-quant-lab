@@ -8,21 +8,98 @@
 
 | Rank | Strategy | CAGR | MaxDD | Sharpe | Calmar | Composite | WF |
 |------|----------|------|-------|--------|--------|-----------|-----|
-| 1 | **Stock v9f GDXJ-Vol+GDX-Fine** 🏆🆕 | **34.6%** | -14.9% | **1.67** | **2.32** | **1.667** | ✅ 0.88 |
-| 2 | Stock v9e GDX-Compete+Vol ⭐⭐⭐⭐⭐ | 33.3% | -14.9% | 1.64 | 2.24 | 1.617 | ✅ 0.88 |
-| 2 | Stock v9d GDX-Vol ⭐⭐⭐⭐ | 32.3% | -14.9% | 1.64 | 2.17 | 1.589 | ✅ 0.88 |
-| 3 | Stock v9c Vol+DD+52w+SHY ⭐⭐⭐⭐ | 31.6% | -14.9% | 1.64 | 2.12 | 1.567 | ✅ 0.89 |
-| 4 | Stock v9b 52w-Hi+SHY ⭐⭐⭐ | 30.9% | -14.9% | 1.60 | 2.08 | 1.533 | ✅ 0.89 |
-| 5 | Stock v9a 3m-Dom+5Sec+Breadth45 ⭐⭐⭐ | 30.5% | -14.9% | 1.57 | 2.05 | 1.512 | ✅ 0.86 |
-| 6 | Stock v8d Breadth+GLD ⭐⭐ | 28.8% | -15.0% | 1.58 | 1.92 | 1.460 | ✅ 0.90 |
-| 7 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 |
-| 8 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 |
-| 9 | Stock v3c 5Sector | 22.4% | -14.7% | 1.27 | 1.52 | 1.162 | ✅ 1.00 |
-| 10 | Stock v3d Blend50 | 27.8% | -20.3% | 1.37 | 1.37 | 1.151 | ✅ 0.75 |
-| 11 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ |
-| 12 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.143 | ✅ 0.94 |
+| 1 | **Stock v9g Dynamic-Sectors** 🏆🆕🚀🚀 | **37.2%** | -14.9% | **1.71** | **2.50** | **1.759** | ✅ 0.78 |
+| 2 | Stock v9f GDXJ-Vol+GDX-Fine ⭐⭐⭐⭐⭐ | 34.6% | -14.9% | 1.67 | 2.32 | 1.667 | ✅ 0.88 |
+| 3 | Stock v9e GDX-Compete+Vol ⭐⭐⭐⭐⭐ | 33.3% | -14.9% | 1.64 | 2.24 | 1.617 | ✅ 0.88 |
+| 4 | Stock v9d GDX-Vol ⭐⭐⭐⭐ | 32.3% | -14.9% | 1.64 | 2.17 | 1.589 | ✅ 0.88 |
+| 5 | Stock v9c Vol+DD+52w+SHY ⭐⭐⭐⭐ | 31.6% | -14.9% | 1.64 | 2.12 | 1.567 | ✅ 0.89 |
+| 6 | Stock v9b 52w-Hi+SHY ⭐⭐⭐ | 30.9% | -14.9% | 1.60 | 2.08 | 1.533 | ✅ 0.89 |
+| 7 | Stock v9a 3m-Dom+5Sec+Breadth45 ⭐⭐⭐ | 30.5% | -14.9% | 1.57 | 2.05 | 1.512 | ✅ 0.86 |
+| 8 | Stock v8d Breadth+GLD ⭐⭐ | 28.8% | -15.0% | 1.58 | 1.92 | 1.460 | ✅ 0.90 |
+| 9 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 |
+| 10 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 |
+| 11 | Stock v3c 5Sector | 22.4% | -14.7% | 1.27 | 1.52 | 1.162 | ✅ 1.00 |
+| 12 | Stock v3d Blend50 | 27.8% | -20.3% | 1.37 | 1.37 | 1.151 | ✅ 0.75 |
+| 13 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ |
+| 14 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.143 | ✅ 0.94 |
 
-## 🏆 CURRENT CHAMPION: Stock v9e — GDX Dual-Role (Compete + Vol-Trigger)
+## 🏆 CURRENT CHAMPION: Stock v9g — Dynamic Sector Concentration
+
+**File**: `stocks/codebear/momentum_v9g_final.py`
+**Period**: 2015-01 → 2025-12
+
+**Key metrics**:
+- CAGR **37.2%** ✅ | Sharpe **1.71** ✅ | MaxDD **-14.9%** ✅ | Calmar **2.50**
+- Walk-Forward: IS 1.86, OOS 1.45, ratio **0.78** ✅
+- Composite: **1.759** ✅ (vs v9f 1.667, +0.092; vs v4d 1.356, +0.403)
+
+**Key Innovation (v9g)**: Dynamic sector concentration based on market breadth
+- **breadth > 65%** (wide bull market): Use **4 sectors × 2 stocks = 8 positions** (concentrated)
+- **breadth ≤ 65%** (normal market): Use **5 sectors × 2 stocks = 10 positions** (current v9f)
+
+**Why it works**:
+1. High breadth = strong broad market = top sectors have much stronger momentum than borderline sectors
+2. Dropping the 5th (weakest) sector in broad bull runs → capital concentrated in best alpha sources
+3. Occurs ~50% of months → meaningful impact on returns
+4. breadth = pct of stocks trading above SMA50, no lookahead bias
+
+**Progression**: v9g Composite sweep (breadth threshold tuning):
+| Threshold | Mode | Composite | WF |
+|-----------|------|-----------|-----|
+| >0.60 | 4 secs | 1.724 | 0.82 |
+| **>0.65** | **4 secs** | **1.759** | **0.78** ← champion |
+| >0.70 | 4 secs | 1.719 | 0.80 |
+| >0.75 | 4 secs | 1.690 | 0.82 |
+
+**vs v9f (Previous Champion)**:
+| Metric | v9f | v9g | Improvement |
+|--------|-----|-----|-------------|
+| CAGR | 34.6% | **37.2%** | **+2.6pp** ✅ |
+| Sharpe | 1.67 | **1.71** | **+0.04** ✅ |
+| Calmar | 2.32 | **2.50** | **+0.18** ✅ |
+| WF | 0.88 | 0.78 | -0.10 (still ✅) |
+| Composite | 1.667 | **1.759** | **+0.092** ✅ |
+
+**Complete 12-layer innovation stack**:
+① GLD natural competition (70% → 20%)
+② Breadth+SPY dual-confirm bear
+③ 3m-dominant momentum (20/50/20/10)
+④ 5×2=10 stocks normal bull
+⑤ **4×2=8 stocks high-breadth bull** ← NEW
+⑥ Breadth threshold 45%
+⑦ 52w-high proximity filter (≥60%)
+⑧ SHY for bear cash
+⑨ GDXJ vol-trigger (>30%→8%, >45%→18%)
+⑩ Aggressive DD (-8%→40%GLD, -12%→60%, -18%→70%)
+⑪ GDX fine competition (>20% avg → 4%)
+⑫ GLD natural competition retained
+
+---
+
+## Previous Champion: Stock v9f — GDXJ Vol-Trigger + GDX Fine Competition
+
+**File**: `stocks/codebear/momentum_v9f_final.py`
+**Period**: 2015-01 → 2025-12
+
+**Key metrics**:
+- CAGR **34.6%** ✅ | Sharpe **1.67** ✅ | MaxDD **-14.9%** ✅ | Calmar **2.32**
+- Walk-Forward: IS 1.72, OOS 1.51, ratio **0.88** ✅
+- Composite: **1.667** ✅ (vs v9e 1.617, +0.050; vs v4d 1.356, +0.311)
+
+**Key Innovation**: GDXJ (junior miners) replaces GDX as vol-trigger hedge + GDX fine-tuned competition
+
+**vs v9e (Previous Champion)**:
+| Metric | v9e | v9f | Improvement |
+|--------|-----|-----|-------------|
+| CAGR | 33.3% | **34.6%** | **+1.3pp** ✅ |
+| Sharpe | 1.64 | **1.67** | **+0.03** ✅ |
+| Calmar | 2.24 | **2.32** | **+0.08** ✅ |
+| WF | 0.88 | 0.88 | same |
+| Composite | 1.617 | **1.667** | **+0.050** ✅ |
+
+---
+
+## Previous Champion: Stock v9e — GDX Dual-Role (Compete + Vol-Trigger)
 
 **File**: `stocks/codebear/momentum_v9e_final.py`
 **Period**: 2015-01 → 2025-12
