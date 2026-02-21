@@ -1,0 +1,498 @@
+#!/usr/bin/env python3
+"""
+动量轮动 v9h2 — 全市场排名+行业上限 + 动量加速过滤 + 行业ETF辅助排名
+代码熊 🐻
+
+当前最佳: v9g — Composite 1.759, CAGR 37.2%, Sharpe 1.71, WF 0.78
+
+v9h2 三个新方向 (与v9h完全不同):
+
+[A] 全市场横截面排名 + 行业上限约束
+    当前: 先排行业 → 行业内选股 (Top-Down)
+    新: 先对全部股票按动量排名 → 选Top-N并施加行业上限约束 (Bottom-Up)
+    
+    实现:
+      1. 对全部股票计算动量分，横向排名
+      2. 按动量从高到低贪婪选入，但每个行业最多选max_per_sec支
+      3. 总选入目标: target_n支 (如12支)
+    
+    优势:
+      - 不再受限于"行业平均动量"，能选出更强势个股
+      - 行业上限防止过度集中 (如2020年科技股独大)
+      - 当一个行业有5支强股时，可以选入更多
+
+[B] 动量加速过滤 (Momentum Acceleration Filter)
+    新增: 要求 3m动量 > 6m动量 (动量正在加速)
+    理由:
+      - 动量加速 (3m > 6m) 表示最近3月比之前3月更强
+      - 这样的股票更可能在下个月继续上涨
+      - 过滤了动量开始减弱但还为正的"衰减动量"股票
+    
+    同时测试: 3m > r6 * 0.8 (宽松版)
+
+[C] 行业ETF辅助排名 (Sector ETF Enhanced Ranking)
+    当前: 行业得分 = 行业内成员股票平均动量 (噪声大)
+    新: 行业得分 = 0.5×行业ETF动量 + 0.5×成员股票平均动量
+    
+    行业ETF:
+      Technology: XLK
+      Healthcare: XLV
+      Financials: XLF
+      Consumer Discretionary: XLY
+      Industrials: XLI
+      Energy: XLE
+      Utilities: XLU
+      Materials: XLB
+      Real Estate: XLRE
+      Communication Services: XLC
+      Consumer Staples: XLP
+    
+    ETF动量更稳定 (更少噪声), 组合后信号质量更高
+
+[D] 组合: A+B / A+C / A+B+C
+"""
+
+import json, warnings
+import numpy as np
+import pandas as pd
+from pathlib import Path
+
+warnings.filterwarnings('ignore')
+
+BASE  = Path(__file__).resolve().parent.parent.parent
+CACHE = BASE / "data_cache"
+STOCK_CACHE = CACHE / "stocks"
+
+# v9g champion base params
+N_BULL_SECS    = 5
+N_BULL_SECS_HI = 4
+BREADTH_CONC   = 0.65
+BULL_SPS       = 2
+BEAR_SPS       = 2
+BREADTH_NARROW   = 0.45
+GLD_AVG_THRESH   = 0.70
+GLD_COMPETE_FRAC = 0.20
+GDX_AVG_THRESH   = 0.20
+GDX_COMPETE_FRAC = 0.04
+CONT_BONUS       = 0.03
+HI52_FRAC        = 0.60
+USE_SHY          = True
+DD_PARAMS        = {-0.08: 0.40, -0.12: 0.60, -0.18: 0.70}
+GDXJ_VOL_LO_THRESH = 0.30
+GDXJ_VOL_LO_FRAC   = 0.08
+GDXJ_VOL_HI_THRESH = 0.45
+GDXJ_VOL_HI_FRAC   = 0.18
+MOM_W = (0.20, 0.50, 0.20, 0.10)
+
+# Sector ETF mapping
+SECTOR_ETF = {
+    'Technology': 'XLK', 'Healthcare': 'XLV', 'Financials': 'XLF',
+    'Consumer Discretionary': 'XLY', 'Industrials': 'XLI', 'Energy': 'XLE',
+    'Utilities': 'XLU', 'Materials': 'XLB', 'Real Estate': 'XLRE',
+    'Communication Services': 'XLC', 'Consumer Staples': 'XLP',
+}
+
+
+def load_csv(fp):
+    df = pd.read_csv(fp)
+    c = 'Date' if 'Date' in df.columns else df.columns[0]
+    df[c] = pd.to_datetime(df[c])
+    df = df.set_index(c).sort_index()
+    if 'Close' in df.columns:
+        df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
+    return df
+
+
+def load_stocks(tickers):
+    d = {}
+    for t in tickers:
+        f = STOCK_CACHE / f"{t}.csv"
+        if not f.exists() or f.stat().st_size < 500:
+            continue
+        try:
+            df = load_csv(f)
+            if 'Close' in df.columns and len(df) > 200:
+                d[t] = df['Close'].dropna()
+        except:
+            pass
+    return pd.DataFrame(d)
+
+
+def precompute(close_df):
+    r1  = close_df / close_df.shift(22)  - 1
+    r3  = close_df / close_df.shift(63)  - 1
+    r6  = close_df / close_df.shift(126) - 1
+    r12 = close_df / close_df.shift(252) - 1
+    r52w_hi = close_df.rolling(252).max()
+    log_r = np.log(close_df / close_df.shift(1))
+    vol5  = log_r.rolling(5).std() * np.sqrt(252)
+    vol30 = log_r.rolling(30).std() * np.sqrt(252)
+    spy   = close_df['SPY'] if 'SPY' in close_df.columns else None
+    s200  = spy.rolling(200).mean() if spy is not None else None
+    sma50 = close_df.rolling(50).mean()
+    return dict(r1=r1, r3=r3, r6=r6, r12=r12, r52w_hi=r52w_hi,
+                vol5=vol5, vol30=vol30, spy=spy, s200=s200,
+                sma50=sma50, close=close_df)
+
+
+def get_spy_vol(sig, date):
+    if sig['vol5'] is None or 'SPY' not in sig['vol5'].columns: return 0.15
+    v = sig['vol5']['SPY'].loc[:date].dropna()
+    return float(v.iloc[-1]) if len(v) > 0 else 0.15
+
+
+def compute_breadth(sig, date):
+    close = sig['close'].loc[:date].dropna(how='all')
+    sma50 = sig['sma50'].loc[:date].dropna(how='all')
+    if len(close) < 50: return 1.0
+    lc = close.iloc[-1]; ls = sma50.iloc[-1]
+    mask = (lc > ls).dropna()
+    return float(mask.sum() / len(mask)) if len(mask) > 0 else 1.0
+
+
+def get_regime(sig, date):
+    if sig['s200'] is None: return 'bull'
+    spy_now  = sig['spy'].loc[:date].dropna()
+    s200_now = sig['s200'].loc[:date].dropna()
+    if len(spy_now) == 0 or len(s200_now) == 0: return 'bull'
+    breadth = compute_breadth(sig, date)
+    return 'bear' if (spy_now.iloc[-1] < s200_now.iloc[-1] and
+                      breadth < BREADTH_NARROW) else 'bull'
+
+
+def asset_compete(sig, date, prices, thresh, frac, lb=127):
+    r6 = sig['r6']
+    idx = r6.index[r6.index <= date]
+    if len(idx) < 1: return 0.0
+    d = idx[-1]
+    stock_r6 = r6.loc[d].drop('SPY', errors='ignore').dropna()
+    stock_r6 = stock_r6[stock_r6 > 0]
+    if len(stock_r6) < 10: return 0.0
+    avg_r6 = stock_r6.mean()
+    hist = prices.loc[:d].dropna()
+    if len(hist) < lb + 3: return 0.0
+    asset_r6 = hist.iloc[-1] / hist.iloc[-lb] - 1
+    return frac if asset_r6 >= avg_r6 * thresh else 0.0
+
+
+def build_candidates(sig, sectors, date, prev_hold):
+    """Build candidate DataFrame with all filters applied"""
+    close = sig['close']
+    idx = close.index[close.index <= date]
+    if len(idx) == 0: return pd.DataFrame()
+    d = idx[-1]
+
+    w1, w3, w6, w12 = MOM_W
+    mom = (sig['r1'].loc[d]*w1 + sig['r3'].loc[d]*w3 +
+           sig['r6'].loc[d]*w6 + sig['r12'].loc[d]*w12)
+
+    df = pd.DataFrame({
+        'mom':   mom, 'r3': sig['r3'].loc[d], 'r6': sig['r6'].loc[d],
+        'vol':   sig['vol30'].loc[d], 'price': close.loc[d],
+        'sma50': sig['sma50'].loc[d], 'hi52':  sig['r52w_hi'].loc[d],
+    }).dropna(subset=['mom', 'sma50', 'r3', 'r6'])
+    df = df[(df['price'] >= 5) & (df.index != 'SPY')]
+    df = df[(df['r6'] > 0) & (df['vol'] < 0.65)]
+    df = df[df['price'] > df['sma50']]
+    df = df[df['price'] >= df['hi52'] * HI52_FRAC]
+    df['sector'] = df.index.map(lambda t: sectors.get(t, 'Unknown'))
+    for t in df.index:
+        if t in prev_hold: df.loc[t, 'mom'] += CONT_BONUS
+    return df
+
+
+def select_topdown(df, n_secs, sps, gld_a, gdx_a, cfg=None):
+    """v9g-style: sector-first → stock selection"""
+    if len(df) == 0: return []
+    sec_mom = df.groupby('sector')['mom'].mean().sort_values(ascending=False)
+    top_secs = sec_mom.head(n_secs).index.tolist()
+    selected = []
+    for sec in top_secs:
+        sdf = df[df['sector'] == sec].sort_values('mom', ascending=False)
+        selected.extend(sdf.index[:sps].tolist())
+    return selected
+
+
+def select_crosssectional(df, target_n, max_per_sec):
+    """Stock-first: rank all stocks, apply sector cap"""
+    if len(df) == 0: return []
+    sorted_df = df.sort_values('mom', ascending=False)
+    selected = []
+    sec_count = {}
+    for t in sorted_df.index:
+        sec = sorted_df.loc[t, 'sector']
+        if sec_count.get(sec, 0) >= max_per_sec:
+            continue
+        selected.append(t)
+        sec_count[sec] = sec_count.get(sec, 0) + 1
+        if len(selected) >= target_n:
+            break
+    return selected
+
+
+def select(sig, sectors, date, prev_hold, gld_p, gdx_p, etf_sig, cfg):
+    df = build_candidates(sig, sectors, date, prev_hold)
+    if len(df) == 0:
+        return {}
+
+    # Momentum acceleration filter (Direction B)
+    if cfg.get('accel_filter', False):
+        accel_min = cfg.get('accel_min', 1.0)  # r3 >= r6 * accel_min
+        df = df[df['r3'] >= df['r6'] * accel_min]
+        if len(df) == 0: return {}
+
+    # Sector ETF enhanced ranking (Direction C)
+    if cfg.get('etf_rank', False) and etf_sig is not None:
+        etf_frac = cfg.get('etf_frac', 0.5)
+        df = _apply_etf_rank(df, etf_sig, date, etf_frac)
+
+    gld_a = asset_compete(sig, date, gld_p, GLD_AVG_THRESH, GLD_COMPETE_FRAC)
+    gdx_a = asset_compete(sig, date, gdx_p, GDX_AVG_THRESH, GDX_COMPETE_FRAC)
+    total_compete = gld_a + gdx_a
+    n_compete = (1 if gld_a > 0 else 0) + (1 if gdx_a > 0 else 0)
+
+    reg     = get_regime(sig, date)
+    breadth = compute_breadth(sig, date)
+
+    # Selection method
+    use_cross = cfg.get('cross_sectional', False)
+
+    if reg == 'bull':
+        n_bull_secs = N_BULL_SECS_HI if breadth > BREADTH_CONC else N_BULL_SECS
+        sps, cash = BULL_SPS, 0.0
+    else:
+        n_bull_secs = 3
+        sps, cash = BEAR_SPS, 0.20
+    n_secs_eff = max(n_bull_secs - n_compete, 1)
+
+    if use_cross:
+        max_per_sec = cfg.get('max_per_sec', 3)
+        target_n    = cfg.get('target_n', 10)
+        n_adj = max(target_n - n_compete * 2, 2)
+        selected = select_crosssectional(df, n_adj, max_per_sec)
+    else:
+        selected = select_topdown(df, n_secs_eff, sps)
+
+    stock_frac = max(1.0 - cash - total_compete, 0.0)
+    if not selected:
+        w = {}
+        if gld_a > 0: w['GLD'] = gld_a
+        if gdx_a > 0: w['GDX'] = gdx_a
+        return w
+
+    valid = [t for t in selected if t in df.index]
+    if not valid:
+        return {}
+
+    iv   = {t: 1.0/max(df.loc[t,'vol'], 0.10) for t in valid}
+    iv_t = sum(iv.values()); iv_w = {t: v/iv_t for t, v in iv.items()}
+    mn   = min(df.loc[t,'mom'] for t in valid); sh = max(-mn+0.01, 0)
+    mw   = {t: df.loc[t,'mom']+sh for t in valid}
+    mw_t = sum(mw.values()); mw_w = {t: v/mw_t for t, v in mw.items()}
+    weights = {t: (0.70*iv_w[t]+0.30*mw_w[t])*stock_frac for t in valid}
+    if gld_a > 0: weights['GLD'] = gld_a
+    if gdx_a > 0: weights['GDX'] = gdx_a
+    return weights
+
+
+def _apply_etf_rank(df, etf_sig, date, etf_frac):
+    """Blend sector ETF momentum into sector ranking"""
+    # Compute ETF 3m momentum at date
+    etf_mom = {}
+    for sec, etf in SECTOR_ETF.items():
+        if etf in etf_sig.columns:
+            try:
+                v = etf_sig[etf].loc[:date].iloc[-1]
+                etf_mom[sec] = float(v) if pd.notna(v) else 0.0
+            except:
+                etf_mom[sec] = 0.0
+
+    if not etf_mom: return df
+
+    # Adjust sector momentum in df via mom blending
+    stock_frac = 1.0 - etf_frac
+    for t in df.index:
+        sec = df.loc[t, 'sector']
+        if sec in etf_mom:
+            # Blend stock momentum with sector ETF momentum
+            df.loc[t, 'mom'] = stock_frac * df.loc[t, 'mom'] + etf_frac * etf_mom[sec]
+    return df
+
+
+def apply_overlays(weights, spy_vol, dd):
+    if spy_vol >= GDXJ_VOL_HI_THRESH: gdxj_v = GDXJ_VOL_HI_FRAC
+    elif spy_vol >= GDXJ_VOL_LO_THRESH: gdxj_v = GDXJ_VOL_LO_FRAC
+    else: gdxj_v = 0.0
+    gld_dd = max((DD_PARAMS[th] for th in sorted(DD_PARAMS) if dd < th), default=0.0)
+    total = gdxj_v + gld_dd
+    if total <= 0 or not weights: return weights
+    stock_frac = max(1.0 - total, 0.01)
+    tot = sum(weights.values())
+    if tot <= 0: return weights
+    new = {t: w/tot*stock_frac for t, w in weights.items()}
+    if gld_dd > 0: new['GLD'] = new.get('GLD', 0) + gld_dd
+    if gdxj_v > 0: new['GDXJ'] = new.get('GDXJ', 0) + gdxj_v
+    return new
+
+
+def run_backtest(close_df, sig, sectors, gld_p, gdx_p, gdxj_p, shy_p, etf_sig, cfg,
+                 start='2015-01-01', end='2025-12-31', cost=0.0015):
+    rng  = close_df.loc[start:end].dropna(how='all')
+    ends = rng.resample('ME').last().index
+    vals, dates, tos = [], [], []
+    prev_w, prev_h = {}, set()
+    val = 1.0; peak = 1.0
+
+    for i in range(len(ends) - 1):
+        dt, ndt = ends[i], ends[i+1]
+        dd = (val - peak) / peak if peak > 0 else 0
+        spy_vol = get_spy_vol(sig, dt)
+        w = select(sig, sectors, dt, prev_h, gld_p, gdx_p, etf_sig, cfg)
+        w = apply_overlays(w, spy_vol, dd)
+        all_t = set(w) | set(prev_w)
+        to    = sum(abs(w.get(t,0) - prev_w.get(t,0)) for t in all_t) / 2
+        tos.append(to); prev_w = w.copy()
+        prev_h = {k for k in w if k not in ('GLD','GDX','GDXJ')}
+        invested = sum(w.values()); cash_frac = max(1.0 - invested, 0.0)
+        ret = 0.0
+        for t, wt in w.items():
+            if   t == 'GLD':  s = gld_p.loc[dt:ndt].dropna()
+            elif t == 'GDX':  s = gdx_p.loc[dt:ndt].dropna()
+            elif t == 'GDXJ': s = gdxj_p.loc[dt:ndt].dropna()
+            elif t in close_df.columns: s = close_df[t].loc[dt:ndt].dropna()
+            else: continue
+            if len(s) >= 2: ret += (s.iloc[-1]/s.iloc[0]-1) * wt
+        if USE_SHY and cash_frac > 0 and shy_p is not None:
+            s = shy_p.loc[dt:ndt].dropna()
+            if len(s) >= 2: ret += (s.iloc[-1]/s.iloc[0]-1) * cash_frac
+        ret -= to * cost * 2
+        val *= (1 + ret)
+        if val > peak: peak = val
+        vals.append(val); dates.append(ndt)
+    eq = pd.Series(vals, index=pd.DatetimeIndex(dates))
+    return eq, float(np.mean(tos)) if tos else 0.0
+
+
+def compute_metrics(eq):
+    if len(eq) < 3: return dict(cagr=0, max_dd=0, sharpe=0, calmar=0)
+    yrs = (eq.index[-1] - eq.index[0]).days / 365.25
+    if yrs < 0.5: return dict(cagr=0, max_dd=0, sharpe=0, calmar=0)
+    cagr = (eq.iloc[-1]/eq.iloc[0])**(1/yrs) - 1
+    mo   = eq.pct_change().dropna()
+    sh   = mo.mean()/mo.std()*np.sqrt(12) if mo.std() > 0 else 0
+    dd   = ((eq - eq.cummax())/eq.cummax()).min()
+    cal  = cagr/abs(dd) if dd != 0 else 0
+    return dict(cagr=float(cagr), max_dd=float(dd), sharpe=float(sh), calmar=float(cal))
+
+
+CONFIGS = {
+    'v9g_base':      {'cross_sectional': False, 'accel_filter': False, 'etf_rank': False},
+    # [A] Cross-sectional selection
+    'A_cross10_3':   {'cross_sectional': True, 'target_n': 10, 'max_per_sec': 3,
+                      'accel_filter': False, 'etf_rank': False},
+    'A_cross12_3':   {'cross_sectional': True, 'target_n': 12, 'max_per_sec': 3,
+                      'accel_filter': False, 'etf_rank': False},
+    'A_cross10_2':   {'cross_sectional': True, 'target_n': 10, 'max_per_sec': 2,
+                      'accel_filter': False, 'etf_rank': False},
+    # [B] Momentum acceleration
+    'B_accel_1.0':   {'cross_sectional': False, 'accel_filter': True, 'accel_min': 1.0,
+                      'etf_rank': False},
+    'B_accel_0.8':   {'cross_sectional': False, 'accel_filter': True, 'accel_min': 0.8,
+                      'etf_rank': False},
+    'B_accel_0.6':   {'cross_sectional': False, 'accel_filter': True, 'accel_min': 0.6,
+                      'etf_rank': False},
+    # [C] Sector ETF enhanced ranking
+    'C_etf30':       {'cross_sectional': False, 'accel_filter': False, 'etf_rank': True,
+                      'etf_frac': 0.30},
+    'C_etf50':       {'cross_sectional': False, 'accel_filter': False, 'etf_rank': True,
+                      'etf_frac': 0.50},
+    # [A+B] Combos
+    'AB_cross_accel':{'cross_sectional': True, 'target_n': 10, 'max_per_sec': 3,
+                      'accel_filter': True, 'accel_min': 0.8, 'etf_rank': False},
+    # [A+C]
+    'AC_cross_etf':  {'cross_sectional': True, 'target_n': 10, 'max_per_sec': 3,
+                      'accel_filter': False, 'etf_rank': True, 'etf_frac': 0.30},
+}
+
+
+def main():
+    print("=" * 72)
+    print("🐻 v9h2 — 横截面选股 + 动量加速 + 行业ETF增强排名")
+    print("=" * 72)
+    print(f"\nBase: v9g champion (Composite 1.759)")
+    print(f"Testing {len(CONFIGS)} configurations...\n")
+
+    tickers  = (CACHE / "sp500_tickers.txt").read_text().strip().split('\n')
+    etf_list = list(SECTOR_ETF.values()) + ['SPY']
+    close_df = load_stocks(tickers + etf_list)
+    sectors  = json.load(open(CACHE / "sp500_sectors.json"))
+    gld_p  = load_csv(CACHE / "GLD.csv")['Close'].dropna()
+    gdx_p  = load_csv(CACHE / "GDX.csv")['Close'].dropna()
+    gdxj_p = load_csv(CACHE / "GDXJ.csv")['Close'].dropna()
+    shy_p  = load_csv(CACHE / "SHY.csv")['Close'].dropna()
+    sig    = precompute(close_df)
+
+    # Precompute sector ETF 3m momentum for Direction C
+    etf_cols = [e for e in SECTOR_ETF.values() if e in close_df.columns]
+    if etf_cols:
+        etf_r3 = close_df[etf_cols] / close_df[etf_cols].shift(63) - 1
+        print(f"  Sector ETFs loaded: {len(etf_cols)}/{len(SECTOR_ETF)}")
+    else:
+        etf_r3 = None
+        print("  No sector ETFs found!")
+
+    print(f"  Loaded {len(close_df.columns)} tickers\n")
+
+    results = {}
+    for name, cfg in CONFIGS.items():
+        print(f"--- {name} ---", flush=True)
+        try:
+            eq_f, to = run_backtest(close_df, sig, sectors, gld_p, gdx_p, gdxj_p, shy_p, etf_r3, cfg)
+            eq_is, _ = run_backtest(close_df, sig, sectors, gld_p, gdx_p, gdxj_p, shy_p, etf_r3, cfg,
+                                     '2015-01-01', '2020-12-31')
+            eq_oo, _ = run_backtest(close_df, sig, sectors, gld_p, gdx_p, gdxj_p, shy_p, etf_r3, cfg,
+                                     '2021-01-01', '2025-12-31')
+            m  = compute_metrics(eq_f)
+            mi = compute_metrics(eq_is)
+            mo = compute_metrics(eq_oo)
+            wf   = mo['sharpe'] / mi['sharpe'] if mi['sharpe'] > 0 else 0
+            comp = m['sharpe']*0.4 + m['calmar']*0.4 + m['cagr']*0.2
+            results[name] = {'full': m, 'is': mi, 'oos': mo, 'wf': wf, 'composite': comp, 'to': to}
+            tag = '🚀🚀' if comp > 1.80 else ('🚀' if comp > 1.759 else ('✅' if comp > 1.70 else ''))
+            wt  = '✅' if wf >= 0.70 else ('⚠️' if wf >= 0.60 else '❌')
+            print(f"  Comp={comp:.4f} {tag} | Sh={m['sharpe']:.2f} CAGR={m['cagr']:.1%} "
+                  f"DD={m['max_dd']:.1%} WF={wf:.2f} {wt}")
+        except Exception as e:
+            print(f"  ERROR: {e}")
+            import traceback; traceback.print_exc()
+
+    print("\n" + "=" * 72)
+    print("📊 FINAL RANKINGS")
+    print("=" * 72)
+    ranked = sorted(results.items(), key=lambda x: x[1]['composite'], reverse=True)
+    for i, (n, r) in enumerate(ranked[:8]):
+        m = r['full']
+        tag = '🚀🚀' if r['composite'] > 1.80 else ('🚀' if r['composite'] > 1.759 else '')
+        wft = '✅' if r['wf'] >= 0.70 else '❌'
+        print(f"  #{i+1} {n:22s}: Comp={r['composite']:.4f} {tag} | "
+              f"Sh={m['sharpe']:.2f} CAGR={m['cagr']:.1%} DD={m['max_dd']:.1%} WF={r['wf']:.2f} {wft}")
+
+    best = max(results.items(), key=lambda x: x[1]['composite'])
+    print(f"\n🏆 Best: {best[0]} → Composite {best[1]['composite']:.4f}")
+    if best[1]['composite'] > 1.80:
+        print("🚨🚨🚨 【重大突破】Composite > 1.80!")
+    elif best[1]['composite'] > 1.759:
+        print(f"🚀 超越v9g! +{best[1]['composite']-1.759:.4f}")
+    else:
+        print("❌ 未超越v9g (1.759)")
+
+    out = {'results': {n: {'full': r['full'], 'is': r['is'], 'oos': r['oos'],
+           'wf': r['wf'], 'composite': r['composite']} for n, r in results.items()},
+           'best': best[0], 'best_composite': best[1]['composite']}
+    jf = Path(__file__).parent / "momentum_v9h2_results.json"
+    jf.write_text(json.dumps(out, indent=2))
+    print(f"\n💾 Results → {jf}")
+    return results
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,52 @@
+{
+  "strategy": "v9i Portfolio Vol Targeting (target=11%/yr, lb=3m)",
+  "full": {
+    "cagr": 0.31855846728575066,
+    "max_dd": -0.10738655672377888,
+    "sharpe": 1.8066340012521211,
+    "calmar": 2.9664650492998947
+  },
+  "is": {
+    "cagr": 0.335355378451196,
+    "max_dd": -0.10738655672377888,
+    "sharpe": 1.9082114081315138,
+    "calmar": 3.122880448749293
+  },
+  "oos": {
+    "cagr": 0.2729914829453628,
+    "max_dd": -0.0910342084651308,
+    "sharpe": 1.56600001375565,
+    "calmar": 2.99877911334757
+  },
+  "wf": 0.8206637938974743,
+  "composite": 1.9729513136779568,
+  "turnover": 0.5177176259088693,
+  "vol_targeting": {
+    "target_vol_ann": 0.11,
+    "lookback_months": 3,
+    "avg_scale": 0.7710039769140904,
+    "pct_scaled": 0.6
+  },
+  "params": {
+    "breadth_conc_thresh": 0.65,
+    "n_bull_secs": 5,
+    "n_bull_secs_hi": 4,
+    "mom_w": [
+      0.2,
+      0.5,
+      0.2,
+      0.1
+    ],
+    "hi52_frac": 0.6,
+    "gdxj_vol_lo": 0.08,
+    "gdxj_vol_hi": 0.18,
+    "dd_params": {
+      "-0.08": 0.4,
+      "-0.12": 0.6,
+      "-0.18": 0.7
+    },
+    "gld_compete": 0.2,
+    "gdx_compete": 0.04,
+    "use_shy": true
+  }
+}

@@ -12,22 +12,68 @@
 
 | Rank | Strategy | CAGR | MaxDD | Sharpe | Calmar | Composite | WF |
 |------|----------|------|-------|--------|--------|-----------|-----|
-| 1 | **Stock v9g Dynamic-Sectors** 🏆🆕🚀🚀 | **37.2%** | -14.9% | **1.71** | **2.50** | **1.759** | ✅ 0.78 |
-| 2 | Stock v9f GDXJ-Vol+GDX-Fine ⭐⭐⭐⭐⭐ | 34.6% | -14.9% | 1.67 | 2.32 | 1.667 | ✅ 0.88 |
-| 3 | Stock v9e GDX-Compete+Vol ⭐⭐⭐⭐⭐ | 33.3% | -14.9% | 1.64 | 2.24 | 1.617 | ✅ 0.88 |
-| 4 | Stock v9d GDX-Vol ⭐⭐⭐⭐ | 32.3% | -14.9% | 1.64 | 2.17 | 1.589 | ✅ 0.88 |
-| 5 | Stock v9c Vol+DD+52w+SHY ⭐⭐⭐⭐ | 31.6% | -14.9% | 1.64 | 2.12 | 1.567 | ✅ 0.89 |
-| 6 | Stock v9b 52w-Hi+SHY ⭐⭐⭐ | 30.9% | -14.9% | 1.60 | 2.08 | 1.533 | ✅ 0.89 |
-| 7 | Stock v9a 3m-Dom+5Sec+Breadth45 ⭐⭐⭐ | 30.5% | -14.9% | 1.57 | 2.05 | 1.512 | ✅ 0.86 |
-| 8 | Stock v8d Breadth+GLD ⭐⭐ | 28.8% | -15.0% | 1.58 | 1.92 | 1.460 | ✅ 0.90 |
-| 9 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 |
-| 10 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 |
-| 11 | Stock v3c 5Sector | 22.4% | -14.7% | 1.27 | 1.52 | 1.162 | ✅ 1.00 |
-| 12 | Stock v3d Blend50 | 27.8% | -20.3% | 1.37 | 1.37 | 1.151 | ✅ 0.75 |
-| 13 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ |
-| 14 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.143 | ✅ 0.94 |
+| 1 | **Stock v9i VolTarget-11%** 🏆🆕🚨🚨🚨 | **31.9%** | **-10.7%** | **1.81** | **2.97** | **1.973** | ✅ 0.82 |
+| 2 | Stock v9g Dynamic-Sectors 🚀🚀 | 37.2% | -14.9% | 1.71 | 2.50 | 1.759 | ✅ 0.78 |
+| 3 | Stock v9f GDXJ-Vol+GDX-Fine ⭐⭐⭐⭐⭐ | 34.6% | -14.9% | 1.67 | 2.32 | 1.667 | ✅ 0.88 |
+| 4 | Stock v9e GDX-Compete+Vol ⭐⭐⭐⭐⭐ | 33.3% | -14.9% | 1.64 | 2.24 | 1.617 | ✅ 0.88 |
+| 5 | Stock v9d GDX-Vol ⭐⭐⭐⭐ | 32.3% | -14.9% | 1.64 | 2.17 | 1.589 | ✅ 0.88 |
+| 6 | Stock v9c Vol+DD+52w+SHY ⭐⭐⭐⭐ | 31.6% | -14.9% | 1.64 | 2.12 | 1.567 | ✅ 0.89 |
+| 7 | Stock v9b 52w-Hi+SHY ⭐⭐⭐ | 30.9% | -14.9% | 1.60 | 2.08 | 1.533 | ✅ 0.89 |
+| 8 | Stock v9a 3m-Dom+5Sec+Breadth45 ⭐⭐⭐ | 30.5% | -14.9% | 1.57 | 2.05 | 1.512 | ✅ 0.86 |
+| 9 | Stock v8d Breadth+GLD ⭐⭐ | 28.8% | -15.0% | 1.58 | 1.92 | 1.460 | ✅ 0.90 |
+| 10 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 |
+| 11 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 |
+| 12 | Stock v3c 5Sector | 22.4% | -14.7% | 1.27 | 1.52 | 1.162 | ✅ 1.00 |
+| 13 | Stock v3d Blend50 | 27.8% | -20.3% | 1.37 | 1.37 | 1.151 | ✅ 0.75 |
+| 14 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ |
+| 15 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.143 | ✅ 0.94 |
 
-## 🏆 CURRENT CHAMPION: Stock v9g — Dynamic Sector Concentration
+## 🏆 CURRENT CHAMPION: Stock v9i — Portfolio Volatility Targeting (11%/yr)
+
+**File**: `stocks/codebear/momentum_v9i_final.py`
+**Period**: 2015-01 → 2025-12
+
+**Key metrics**:
+- CAGR **31.9%** ✅ | Sharpe **1.81** ✅ | MaxDD **-10.7%** ✅ (史上最低!) | Calmar **2.97**
+- Walk-Forward: IS 1.91, OOS 1.57, ratio **0.82** ✅
+- Composite: **1.973** ✅ (vs v9g 1.759, +0.214; vs v4d 1.356, +0.617)
+
+**Key Innovation (v9i)**: Portfolio Volatility Targeting
+- Compute realized vol from past 3 months of monthly portfolio returns
+- When `port_vol_ann > 11%`: scale down equity by `11%/port_vol`
+- Excess equity → SHY (risk-free returns)
+- 60% of months trigger scaling (avg equity at 77.1% of nominal)
+
+**Why it works**:
+1. Portfolio realized vol captures actual experienced risk (not just market VIX proxy)
+2. When our strategy's own returns are volatile, the market environment is unfavorable
+3. Scaling down equity during high-vol months preserves capital for recovery
+4. MaxDD drops from -14.9% → -10.7% (-4.2pp), Calmar improves from 2.50 → 2.97
+5. Sharpe improves from 1.71 → 1.81 (lower variance of monthly returns)
+6. WF improves from 0.78 → 0.82 (more robust signal)
+
+**Parameter sensitivity**:
+| Target Vol | Composite | MaxDD | WF |
+|-----------|-----------|-------|----|
+| 9% | 2.062 | -9.5% | 0.80 |
+| 10% | 1.944 | -10.7% | 0.82 |
+| **11%** | **1.973** | **-10.7%** | **0.82** ← champion |
+| 13% | 1.855 | -12.2% | 0.82 |
+| 15% | 1.802 | -12.7% | 0.84 |
+
+**vs v9g (Previous Champion)**:
+| Metric | v9g | v9i | Improvement |
+|--------|-----|-----|-------------|
+| CAGR | 37.2% | 31.9% | -5.3pp (controlled trade-off) |
+| MaxDD | -14.9% | **-10.7%** | **+4.2pp** ✅ |
+| Sharpe | 1.71 | **1.81** | **+0.10** ✅ |
+| Calmar | 2.50 | **2.97** | **+0.47** ✅ |
+| WF | 0.78 | **0.82** | **+0.04** ✅ |
+| Composite | 1.759 | **1.973** | **+0.214** ✅ |
+
+---
+
+## Previous Champion: Stock v9g — Dynamic Sector Concentration
 
 **File**: `stocks/codebear/momentum_v9g_final.py`
 **Period**: 2015-01 → 2025-12
