@@ -1,0 +1,19 @@
+{
+  "v4d_base": {
+    "cagr": 0.27,
+    "sharpe": 1.435,
+    "max_dd": -0.15,
+    "calmar": 1.805,
+    "wf": 0.829,
+    "composite": 1.35
+  },
+  "v6b": {
+    "name": "v6b",
+    "cagr": 0.1334,
+    "sharpe": 0.8504,
+    "max_dd": -0.3348,
+    "calmar": 0.3983,
+    "wf": 0.677,
+    "composite": 0.6395
+  }
+}
