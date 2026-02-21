@@ -1,30 +1,58 @@
 # Best Strategies — Wombat Quant Lab
 
-> Updated: 2026-02-20 by 代码熊 🐻
+> Updated: 2026-02-21 by 代码熊 🐻
 
 ## Overall Leaderboard (by Composite Score)
 
-> Composite = Sharpe×0.4 + Calmar×0.2 + min(CAGR,1.0)×0.2 + WF_bonus(0.2)
->
-> Alternative "simple" composite (Sharpe×0.4 + Calmar×0.4 + CAGR×0.2) shown in parentheses
+> Composite = Sharpe×0.4 + Calmar×0.4 + CAGR×0.2 (simple formula)
 
-| Rank | Strategy | CAGR | MaxDD | Sharpe | Calmar | Composite | Simple | WF |
-|------|----------|------|-------|--------|--------|-----------|--------|-----|
-| 1 | **Stock v4d DD+GLD** ⭐⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | **1.158** | **1.356** | ✅ 0.80 |
-| 2 | BTC v7f DualMom ⭐⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 0.987 | 1.314 | ❌ |
-| 3 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.084 | 1.173 | ✅ 0.85 |
-| 4 | Stock v3c 5Sector | 22.4% | -14.7% | 1.27 | 1.52 | 1.062 | 1.162 | ✅ 1.00 |
-| 5 | Stock v3d Blend50 | 27.8% | -20.3% | 1.37 | 1.37 | 1.052 | 1.151 | ✅ 0.75 |
-| 6 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.043 | 1.143 | ✅ 0.94 |
-| 7 | Stock v3e v2d+Trend | 24.5% | -16.7% | 1.26 | 1.46 | 1.045 | 1.139 | ✅ 0.72 |
-| 8 | Stock v2d Soft Bear | 25.8% | -21.9% | 1.22 | 1.18 | 0.976 | 1.012 | ✅ 0.73 |
-| 9 | BTC v7d AbsMom+GLD | 65.2% | -48.0% | 1.33 | 1.36 | 0.933 | 1.134 | ❌ |
-| 10 | BTC v7e ConsvMom+GLD | 59.9% | -44.6% | 1.35 | 1.34 | 0.929 | 1.126 | ❌ |
-| 11 | BTC v7b GLD Hedge | 64.0% | -58.7% | 1.17 | 1.09 | 0.816 | 1.032 | ❌ |
-| 12 | TQQQ v9g GLD Hedge | 47.0% | -62.6% | 0.95 | 0.75 | 0.774 | 0.774 | ✅ |
-| 13 | Beast Rotation v1 | 38.0% | -50.7% | 0.80 | 0.75 | 0.695 | 0.696 | ✅ |
+| Rank | Strategy | CAGR | MaxDD | Sharpe | Calmar | Composite | WF |
+|------|----------|------|-------|--------|--------|-----------|-----|
+| 1 | **Stock v8d Breadth+GLD** ⭐⭐⭐ | 28.8% | -15.0% | **1.58** | 1.92 | **1.460** | ✅ 0.90 |
+| 2 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 |
+| 3 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 |
+| 4 | Stock v3c 5Sector | 22.4% | -14.7% | 1.27 | 1.52 | 1.162 | ✅ 1.00 |
+| 5 | Stock v3d Blend50 | 27.8% | -20.3% | 1.37 | 1.37 | 1.151 | ✅ 0.75 |
+| 6 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ |
+| 7 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.143 | ✅ 0.94 |
+| 8 | Stock v3e v2d+Trend | 24.5% | -16.7% | 1.26 | 1.46 | 1.139 | ✅ 0.72 |
+| 9 | Stock v2d Soft Bear | 25.8% | -21.9% | 1.22 | 1.18 | 1.012 | ✅ 0.73 |
 
-## 🏆 NEW Champion: Stock v4d — DD Responsive GLD Hedge
+## 🏆 NEW Champion: Stock v8d — Breadth+SPY+GLD Compete+DD
+
+**File**: `stocks/codebear/momentum_v8d_final.py`
+**Period**: 2015-01 → 2025-12
+
+**Key metrics**:
+- CAGR 28.8% | Sharpe **1.58** ✅ | MaxDD -15.0% | Calmar 1.92
+- Walk-Forward: IS 1.61, OOS 1.45, ratio **0.90** ✅
+- Composite: **1.460** (vs v4d 1.356, +0.104)
+
+**Strategy**: v3b sector rotation + 3-layer hedge enhancement:
+1. **Dual-confirm bear regime**: Bear mode only when BOTH SPY<SMA200 AND market breadth<40%
+   - More precise bear detection, avoids false triggers
+2. **GLD natural competition**: GLD enters portfolio at 20% when its 6m momentum ≥ 80% of stock universe average
+   - Proactive, trend-following GLD entry (not forced defensive)
+3. **DD-responsive overlay**: Same v4d GLD response (-8%→30%, -12%→50%, -18%→60%)
+
+**vs v4d (Previous Champion)**:
+| Metric | v4d | v8d | Improvement |
+|--------|-----|-----|-------------|
+| CAGR | 27.1% | 28.8% | +1.7pp |
+| MaxDD | -15.0% | -15.0% | (same) |
+| Sharpe | 1.45 | **1.58** | **+0.13** ⭐ |
+| Calmar | 1.81 | 1.92 | +0.11 |
+| WF | 0.80 | **0.90** | **+0.10** ⭐ |
+| Composite | 1.356 | **1.460** | **+0.104** ⭐ |
+
+**Why WF improved to 0.90**:
+- GLD competition mechanism is rule-based and momentum-consistent → less overfitting
+- Dual-confirm regime reduces false signals that hurt OOS
+- OOS Sharpe 1.45 vs IS 1.61 = only 10% degradation (excellent)
+
+---
+
+## Previous Champion: Stock v4d — DD Responsive GLD Hedge
 
 **File**: `stocks/codebear/momentum_v4d.py`
 **Period**: 2015-01 → 2025-12
