@@ -2,6 +2,10 @@
 
 > Updated: 2026-02-21 by 代码熊 🐻
 
+> ⚠️ **重要提醒 (2026-02-21)**: 月频回测的 MaxDD 严重低估！
+> 日频审计发现: Stock v9f/v9g 真实 MaxDD = **-26.51%** (月频报 -14.9%, 低估 1.78x)
+> 详见 [`DAILY_BACKTEST_AUDIT.md`](DAILY_BACKTEST_AUDIT.md)
+
 ## Overall Leaderboard (by Composite Score)
 
 > Composite = Sharpe×0.4 + Calmar×0.4 + CAGR×0.2 (simple formula)
@@ -32,6 +36,11 @@
 - CAGR **37.2%** ✅ | Sharpe **1.71** ✅ | MaxDD **-14.9%** ✅ | Calmar **2.50**
 - Walk-Forward: IS 1.86, OOS 1.45, ratio **0.78** ✅
 - Composite: **1.759** ✅ (vs v9f 1.667, +0.092; vs v4d 1.356, +0.403)
+
+> ⚠️ **日频真实 MaxDD: -26.51%** (月频 -14.9% 低估 1.78 倍)
+> 最大回撤区间: 2020-02-20 → 2020-03-20 (COVID-19)
+> 日频 Sharpe: 1.37 | 日频 Calmar: 1.40 | 日频 Composite: 1.1812
+> 详见 `DAILY_BACKTEST_AUDIT.md` 及 `stocks/codebear/momentum_v9g_daily.py`
 
 **Key Innovation (v9g)**: Dynamic sector concentration based on market breadth
 - **breadth > 65%** (wide bull market): Use **4 sectors × 2 stocks = 8 positions** (concentrated)
@@ -85,6 +94,11 @@
 - CAGR **34.6%** ✅ | Sharpe **1.67** ✅ | MaxDD **-14.9%** ✅ | Calmar **2.32**
 - Walk-Forward: IS 1.72, OOS 1.51, ratio **0.88** ✅
 - Composite: **1.667** ✅ (vs v9e 1.617, +0.050; vs v4d 1.356, +0.311)
+
+> ⚠️ **日频真实 MaxDD: -26.51%** (月频 -14.9% 低估 1.78 倍)
+> 最大回撤区间: 2020-02-20 → 2020-03-20 (COVID-19)
+> 日频 Sharpe: 1.35 | 日频 Calmar: 1.34 | 日频 Composite: 1.1464
+> 详见 `DAILY_BACKTEST_AUDIT.md` 及 `stocks/codebear/momentum_v9f_daily.py`
 
 **Key Innovation**: GDXJ (junior miners) replaces GDX as vol-trigger hedge + GDX fine-tuned competition
 
