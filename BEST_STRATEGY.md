@@ -8,18 +8,78 @@
 
 | Rank | Strategy | CAGR | MaxDD | Sharpe | Calmar | Composite | WF |
 |------|----------|------|-------|--------|--------|-----------|-----|
-| 1 | **Stock v9a 3m-Dom+5Sec+Breadth45** 🏆🆕 | **30.5%** | -14.9% | **1.57** | **2.05** | **1.512** | ✅ 0.86 |
-| 2 | Stock v8d Breadth+GLD ⭐⭐⭐ | 28.8% | -15.0% | 1.58 | 1.92 | 1.460 | ✅ 0.90 |
-| 3 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 |
-| 4 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 |
-| 5 | Stock v3c 5Sector | 22.4% | -14.7% | 1.27 | 1.52 | 1.162 | ✅ 1.00 |
-| 6 | Stock v3d Blend50 | 27.8% | -20.3% | 1.37 | 1.37 | 1.151 | ✅ 0.75 |
-| 7 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ |
-| 8 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.143 | ✅ 0.94 |
-| 9 | Stock v3e v2d+Trend | 24.5% | -16.7% | 1.26 | 1.46 | 1.139 | ✅ 0.72 |
-| 10 | Stock v2d Soft Bear | 25.8% | -21.9% | 1.22 | 1.18 | 1.012 | ✅ 0.73 |
+| 1 | **Stock v9c Vol+DD+52w+SHY** 🏆🆕🆕 | **31.6%** | -14.9% | **1.64** | **2.12** | **1.567** | ✅ 0.89 |
+| 2 | Stock v9b 52w-Hi+SHY ⭐⭐⭐⭐ | 30.9% | -14.9% | 1.60 | 2.08 | 1.533 | ✅ 0.89 |
+| 3 | Stock v9a 3m-Dom+5Sec+Breadth45 ⭐⭐⭐ | 30.5% | -14.9% | 1.57 | 2.05 | 1.512 | ✅ 0.86 |
+| 4 | Stock v8d Breadth+GLD ⭐⭐ | 28.8% | -15.0% | 1.58 | 1.92 | 1.460 | ✅ 0.90 |
+| 5 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 |
+| 6 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 |
+| 7 | Stock v3c 5Sector | 22.4% | -14.7% | 1.27 | 1.52 | 1.162 | ✅ 1.00 |
+| 8 | Stock v3d Blend50 | 27.8% | -20.3% | 1.37 | 1.37 | 1.151 | ✅ 0.75 |
+| 9 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ |
+| 10 | Stock v3a SecRot+Trend | 24.6% | -17.7% | 1.34 | 1.39 | 1.143 | ✅ 0.94 |
 
-## 🏆 NEW CHAMPION: Stock v9a — 3m-Dominant + 5-Sector + Breadth45 + GLD70
+## 🏆 CURRENT CHAMPION: Stock v9c — Vol+DD+52w+SHY Complete System
+
+**File**: `stocks/codebear/momentum_v9c_final.py`
+**Period**: 2015-01 → 2025-12
+
+**Key metrics**:
+- CAGR **31.6%** ✅ | Sharpe **1.64** ✅ | MaxDD **-14.9%** ✅ | Calmar **2.12**
+- Walk-Forward: IS 1.67, OOS 1.49, ratio **0.89** ✅
+- Composite: **1.567** ✅ (+0.211 vs v4d original, +15.5%)
+
+**All 9 improvements stacked in one system**:
+1. [v8d] GLD natural competition (6m momentum vs stock universe)
+2. [v8d] Breadth+SPY dual bear confirmation
+3. [v9a] 3m-dominant momentum weights (20/50/20/10)
+4. [v9a] 5 sectors × 2 stocks = 10 stocks in bull
+5. [v9a] Breadth threshold 45% (slightly relaxed)
+6. [v9b] **52-week high proximity filter** (price ≥ 60% of 52w high)
+7. [v9b] **SHY for bear cash** (20% bear cash earns SHY returns)
+8. [v9c] **SPY vol pre-emptive GLD** (5d-vol > 30%→+10%GLD, > 45%→+20%GLD)
+9. [v9c] **More aggressive DD response** (-8%→40%, -12%→60%, -18%→70% GLD)
+
+**Evolution chain**:
+| Version | Composite | Δ | Key Innovation |
+|---------|-----------|---|----------------|
+| v4d | 1.356 | baseline | DD-responsive GLD |
+| v8d | 1.460 | +0.104 | GLD competition + breadth regime |
+| v9a | 1.512 | +0.052 | 3m-dominant, 5×2 sectors, breadth 45% |
+| v9b | 1.533 | +0.021 | 52w-high filter + SHY cash |
+| **v9c** | **1.567** | **+0.034** | **Vol pre-emptive + aggressive DD** |
+
+**Why vol pre-emptive overlay works**:
+- SPY 5-day realized vol is a cheap "VIX proxy" computable from price data
+- When vol > 30% (annualized), market stress is elevated → pre-position GLD
+- This fires BEFORE DD threshold is hit → reduces max intra-month drawdown
+- Combined with more aggressive DD thresholds → double protection layer
+
+---
+
+## Stock v9b — 52w High Filter + SHY Cash
+
+**File**: `stocks/codebear/momentum_v9b_final.py` | Composite: **1.533**, Sharpe 1.60, WF 0.89
+
+Key additions over v9a:
+- **52-week high filter**: Only select stocks trading ≥ 60% of their 52w high → filters "broken" momentum stocks
+- **SHY bear cash**: 20% bear cash earns SHY returns (~4-5%/year) instead of 0%
+
+---
+
+## Stock v9a — First 1.5+ Breakthrough
+
+**File**: `stocks/codebear/momentum_v9a_final.py` | Composite: **1.512**, Sharpe 1.57, WF 0.86
+
+Key improvements over v8d:
+- 3m-dominant momentum: 50% weight vs 40% previously
+- 5 sectors × 2 stocks = 10 total (vs 4×3=12)
+- Breadth threshold 45% (vs 40%)
+- GLD competition at 70% (vs 80%)
+
+---
+
+## Previous Champion: Stock v9a — 3m-Dominant + 5-Sector + Breadth45 + GLD70
 
 **🚨 FIRST TIME ALL TARGETS MET: Composite > 1.5, Sharpe > 1.5, CAGR > 30%, MaxDD < 25%, WF > 0.6 🚨**
 
