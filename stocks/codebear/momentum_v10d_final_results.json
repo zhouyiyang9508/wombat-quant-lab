@@ -1,0 +1,36 @@
+{
+  "strategy": "v10d_final: Rate-adaptive TLT/IEF bear hedge (no HYG)",
+  "innovation": "In bear mode: select best of TLT/IEF by 6m momentum; avoid both if both negative",
+  "full": {
+    "cagr": 0.32460971360275037,
+    "max_dd": -0.1000093269769683,
+    "sharpe": 1.8602514206830485,
+    "calmar": 3.2457944015312346
+  },
+  "is": {
+    "cagr": 0.34832531277656287,
+    "max_dd": -0.1000093269769683,
+    "sharpe": 2.021258266459071,
+    "calmar": 3.4829282758475184
+  },
+  "oos": {
+    "cagr": 0.2724750229118609,
+    "max_dd": -0.09103420728181656,
+    "sharpe": 1.5630942663952572,
+    "calmar": 2.9931058999432385
+  },
+  "wf": 0.77332733393519,
+  "composite": 2.1073402716062635,
+  "turnover": 0.5229710408706918,
+  "bond_hist": {
+    "TLT": 5,
+    "IEF": 5,
+    "none": 7
+  },
+  "params": {
+    "tlt_bear_frac": 0.25,
+    "ief_bear_frac": 0.2,
+    "bond_mom_lb": 126,
+    "vol_target": 0.11
+  }
+}
