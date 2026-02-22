@@ -1,0 +1,73 @@
+{
+  "date": "2026-02-22",
+  "author": "代码熊 🐻",
+  "description": "v16 探索: 52周高位信号 + VIX门控 + 信用利差门控",
+  "baseline_v11b": {
+    "cagr": 0.317,
+    "max_dd": -0.094,
+    "sharpe": 1.90,
+    "calmar": 3.36,
+    "composite": 2.168,
+    "wf": 0.757,
+    "is_sharpe": 2.08,
+    "oos_sharpe": 1.58
+  },
+  "direction_A_52hi": {
+    "status": "NO_IMPROVEMENT",
+    "best_alpha": 0.0,
+    "note": "所有 alpha>0 都降低 Composite。alpha=0.75 最接近但仍 -0.019。52周高位接近度对已有动量信号无增值",
+    "sweep": {
+      "alpha_0.00": {"composite": 2.168, "delta": 0.0},
+      "alpha_0.25": {"composite": 2.068, "delta": -0.100},
+      "alpha_0.50": {"composite": 2.138, "delta": -0.030},
+      "alpha_0.75": {"composite": 2.149, "delta": -0.019},
+      "alpha_1.00": {"composite": 2.120, "delta": -0.047},
+      "alpha_1.50": {"composite": 1.921, "delta": -0.247},
+      "alpha_2.00": {"composite": 1.952, "delta": -0.216}
+    },
+    "proximity_threshold_sweep": {
+      "note": "使用 alpha=0.5，不同 proximity threshold",
+      "0.80": {"composite": 2.125, "wf": 0.812},
+      "0.85": {"composite": 2.138, "wf": 0.805},
+      "0.90": {"composite": 2.136, "wf": 0.799},
+      "0.93": {"composite": 2.106, "wf": 0.830},
+      "0.95": {"composite": 2.126, "wf": 0.847}
+    },
+    "insight": "WF 随 alpha 增大而提升(0.76→0.82)，但 IS Sharpe 同时降低，CAGR 也降低。说明52周高位信号有轻微均值回归效果（选出更稳的股票但收益更低），不适合动量策略"
+  },
+  "direction_B_vix_gate": {
+    "status": "NO_IMPROVEMENT",
+    "best_config": "None (all worse than baseline)",
+    "note": "SPY vol30 门控在所有阈值组合下都降低 CAGR 和 Composite。最好的 L3=0.35,L4=0.50 仅丢失 -0.118",
+    "default_result": {
+      "cagr": 0.291,
+      "max_dd": -0.096,
+      "sharpe": 1.73,
+      "calmar": 3.03,
+      "composite": 1.962,
+      "wf": 0.798,
+      "vix_actions": {"normal": 82, "L2_relax": 38, "L3_tight": 8, "L4_shy": 3}
+    },
+    "insight": "现有 vol_target(0.11) + DD_PARAMS + GDXJ_VOL 三层已经涵盖了 VIX 门控想做的事。额外叠加 VIX 层导致过度保护，降低 CAGR 而 MaxDD 几乎无改善(-9.4%→-9.6%)"
+  },
+  "direction_C_credit_spread": {
+    "status": "NO_IMPROVEMENT",
+    "note": "HYG<200dMA 在 2015-2025 触发 41/131 月（31%），过于频繁",
+    "sweep": {
+      "cut_5%": {"cagr": 0.307, "composite": 2.045, "wf": 0.823, "delta_comp": -0.122},
+      "cut_8%": {"cagr": 0.303, "composite": 2.016, "wf": 0.821, "delta_comp": -0.151},
+      "cut_10%": {"cagr": 0.301, "composite": 2.004, "wf": 0.820, "delta_comp": -0.164},
+      "cut_12%": {"cagr": 0.303, "composite": 2.025, "wf": 0.802, "delta_comp": -0.143},
+      "cut_15%": {"cagr": 0.300, "composite": 2.025, "wf": 0.798, "delta_comp": -0.143},
+      "cut_20%": {"cagr": 0.295, "composite": 2.004, "wf": 0.793, "delta_comp": -0.164},
+      "cut_25%": {"cagr": 0.291, "composite": 1.987, "wf": 0.783, "delta_comp": -0.181}
+    },
+    "insight": "信用利差门控触发频率太高(31%月份)，且与现有防御层高度重叠。WF有微量提升但CAGR和Composite均下降"
+  },
+  "meta_insight": "v11b 的防御架构（三制度框架+三层overlay+vol targeting）已近乎最优。所有额外的风险门控（VIX/信用利差/52周高位调整）都降低收益而风险改善微乎其微。这强化了此前发现#9：纯动量信号+精简防御层是最优组合，任何修改都不如不改",
+  "added_to_blacklist": [
+    "52周高位信号增强排名 → CAGR降低，动量被稀释",
+    "VIX/已实现波动率门控 → 与现有vol_target重复，过度保护",
+    "HYG信用利差门控 → 触发过于频繁(31%)，与DD_PARAMS重叠"
+  ]
+}
