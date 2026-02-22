@@ -1,0 +1,11 @@
+{
+  "monthly_reported": -0.094,
+  "daily_max_dd": -0.20777238722317273,
+  "ratio": 2.2103445449273695,
+  "peak_date": "2020-02-20",
+  "trough_date": "2020-03-18",
+  "daily_cagr": 0.32740090820229173,
+  "daily_sharpe": 1.956859931104744,
+  "daily_calmar": 1.5757671776212663,
+  "pass_25pct": true
+}
