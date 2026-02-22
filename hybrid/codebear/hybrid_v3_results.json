@@ -1,0 +1,468 @@
+{
+  "stock_v9j": {
+    "cagr": 0.3222,
+    "maxdd": -0.251,
+    "sharpe": 1.3896,
+    "calmar": 1.2838,
+    "composite": 0.8295,
+    "ann_vol": 0.1846,
+    "years": 10.97,
+    "is_sharpe": 1.499,
+    "oos_sharpe": 1.254,
+    "wf_ratio": 0.836,
+    "is_cagr": 0.347,
+    "oos_cagr": 0.2919
+  },
+  "crypto_v3": {
+    "cagr": 1.3471,
+    "maxdd": -0.465,
+    "sharpe": 1.8622,
+    "calmar": 2.8969,
+    "composite": 1.8633,
+    "ann_vol": 0.502,
+    "years": 10.38,
+    "is_sharpe": 2.268,
+    "oos_sharpe": 1.236,
+    "wf_ratio": 0.545,
+    "is_cagr": 2.3788,
+    "oos_cagr": 0.536
+  },
+  "crypto_v2": {
+    "cagr": 1.2583,
+    "maxdd": -0.7039,
+    "sharpe": 1.454,
+    "calmar": 1.7876,
+    "composite": 1.4396,
+    "ann_vol": 0.6994,
+    "years": 10.38,
+    "is_sharpe": 1.951,
+    "oos_sharpe": 0.681,
+    "wf_ratio": 0.349,
+    "is_cagr": 2.6571,
+    "oos_cagr": 0.2992
+  },
+  "hybrid_v3_sweep": [
+    {
+      "w_crypto": 0.0,
+      "cagr": 0.3222,
+      "maxdd": -0.251,
+      "sharpe": 1.3896,
+      "calmar": 1.2838,
+      "composite": 0.8295,
+      "ann_vol": 0.1846,
+      "years": 10.97,
+      "is_sharpe": 1.499,
+      "oos_sharpe": 1.254,
+      "wf_ratio": 0.836,
+      "is_cagr": 0.347,
+      "oos_cagr": 0.2919
+    },
+    {
+      "w_crypto": 0.05,
+      "cagr": 0.384,
+      "maxdd": -0.2431,
+      "sharpe": 1.6393,
+      "calmar": 1.5799,
+      "composite": 0.9968,
+      "ann_vol": 0.1843,
+      "years": 10.38,
+      "is_sharpe": 1.896,
+      "oos_sharpe": 1.342,
+      "wf_ratio": 0.708,
+      "is_cagr": 0.4555,
+      "oos_cagr": 0.3073
+    },
+    {
+      "w_crypto": 0.08,
+      "cagr": 0.4122,
+      "maxdd": -0.2383,
+      "sharpe": 1.7578,
+      "calmar": 1.7298,
+      "composite": 1.078,
+      "ann_vol": 0.1833,
+      "years": 10.38,
+      "is_sharpe": 2.073,
+      "oos_sharpe": 1.391,
+      "wf_ratio": 0.671,
+      "is_cagr": 0.5021,
+      "oos_cagr": 0.3165
+    },
+    {
+      "w_crypto": 0.1,
+      "cagr": 0.4311,
+      "maxdd": -0.2353,
+      "sharpe": 1.8303,
+      "calmar": 1.8325,
+      "composite": 1.1313,
+      "ann_vol": 0.1833,
+      "years": 10.38,
+      "is_sharpe": 2.18,
+      "oos_sharpe": 1.42,
+      "wf_ratio": 0.651,
+      "is_cagr": 0.5336,
+      "oos_cagr": 0.3225
+    },
+    {
+      "w_crypto": 0.12,
+      "cagr": 0.4501,
+      "maxdd": -0.2323,
+      "sharpe": 1.8969,
+      "calmar": 1.9377,
+      "composite": 1.1837,
+      "ann_vol": 0.1839,
+      "years": 10.38,
+      "is_sharpe": 2.276,
+      "oos_sharpe": 1.447,
+      "wf_ratio": 0.636,
+      "is_cagr": 0.5656,
+      "oos_cagr": 0.3285
+    },
+    {
+      "w_crypto": 0.15,
+      "cagr": 0.4788,
+      "maxdd": -0.2279,
+      "sharpe": 1.9846,
+      "calmar": 2.1015,
+      "composite": 1.261,
+      "ann_vol": 0.1858,
+      "years": 10.38,
+      "is_sharpe": 2.401,
+      "oos_sharpe": 1.484,
+      "wf_ratio": 0.618,
+      "is_cagr": 0.6144,
+      "oos_cagr": 0.3374
+    },
+    {
+      "w_crypto": 0.18,
+      "cagr": 0.5078,
+      "maxdd": -0.2234,
+      "sharpe": 2.0569,
+      "calmar": 2.273,
+      "composite": 1.3364,
+      "ann_vol": 0.189,
+      "years": 10.38,
+      "is_sharpe": 2.499,
+      "oos_sharpe": 1.514,
+      "wf_ratio": 0.606,
+      "is_cagr": 0.6642,
+      "oos_cagr": 0.3462
+    },
+    {
+      "w_crypto": 0.2,
+      "cagr": 0.5272,
+      "maxdd": -0.2204,
+      "sharpe": 2.0965,
+      "calmar": 2.3918,
+      "composite": 1.3857,
+      "ann_vol": 0.1918,
+      "years": 10.38,
+      "is_sharpe": 2.55,
+      "oos_sharpe": 1.531,
+      "wf_ratio": 0.6,
+      "is_cagr": 0.6979,
+      "oos_cagr": 0.3521
+    },
+    {
+      "w_crypto": 0.25,
+      "cagr": 0.5761,
+      "maxdd": -0.2129,
+      "sharpe": 2.1674,
+      "calmar": 2.7057,
+      "composite": 1.5063,
+      "ann_vol": 0.2009,
+      "years": 10.38,
+      "is_sharpe": 2.636,
+      "oos_sharpe": 1.562,
+      "wf_ratio": 0.593,
+      "is_cagr": 0.7842,
+      "oos_cagr": 0.3664
+    },
+    {
+      "w_crypto": 0.3,
+      "cagr": 0.6255,
+      "maxdd": -0.2054,
+      "sharpe": 2.2036,
+      "calmar": 3.0456,
+      "composite": 1.625,
+      "ann_vol": 0.2127,
+      "years": 10.38,
+      "is_sharpe": 2.672,
+      "oos_sharpe": 1.577,
+      "wf_ratio": 0.59,
+      "is_cagr": 0.8731,
+      "oos_cagr": 0.3804
+    },
+    {
+      "w_crypto": 0.35,
+      "cagr": 0.6754,
+      "maxdd": -0.1985,
+      "sharpe": 2.2132,
+      "calmar": 3.402,
+      "composite": 1.7415,
+      "ann_vol": 0.2268,
+      "years": 10.38,
+      "is_sharpe": 2.675,
+      "oos_sharpe": 1.578,
+      "wf_ratio": 0.59,
+      "is_cagr": 0.9647,
+      "oos_cagr": 0.394
+    },
+    {
+      "w_crypto": 0.4,
+      "cagr": 0.7258,
+      "maxdd": -0.1918,
+      "sharpe": 2.2044,
+      "calmar": 3.7841,
+      "composite": 1.86,
+      "ann_vol": 0.2428,
+      "years": 10.38,
+      "is_sharpe": 2.657,
+      "oos_sharpe": 1.569,
+      "wf_ratio": 0.59,
+      "is_cagr": 1.0589,
+      "oos_cagr": 0.4073
+    }
+  ],
+  "hybrid_v2_compare": [
+    {
+      "w_crypto": 0.1,
+      "cagr": 0.4399,
+      "maxdd": -0.276,
+      "sharpe": 1.7694,
+      "calmar": 1.5939,
+      "composite": 1.0608,
+      "ann_vol": 0.1942,
+      "years": 10.38,
+      "is_sharpe": 2.163,
+      "oos_sharpe": 1.305,
+      "wf_ratio": 0.604,
+      "is_cagr": 0.5662,
+      "oos_cagr": 0.3091
+    },
+    {
+      "w_crypto": 0.15,
+      "cagr": 0.4912,
+      "maxdd": -0.2895,
+      "sharpe": 1.8516,
+      "calmar": 1.6967,
+      "composite": 1.1327,
+      "ann_vol": 0.2058,
+      "years": 10.38,
+      "is_sharpe": 2.308,
+      "oos_sharpe": 1.294,
+      "wf_ratio": 0.561,
+      "is_cagr": 0.6643,
+      "oos_cagr": 0.3165
+    },
+    {
+      "w_crypto": 0.2,
+      "cagr": 0.5425,
+      "maxdd": -0.3054,
+      "sharpe": 1.8829,
+      "calmar": 1.7766,
+      "composite": 1.1861,
+      "ann_vol": 0.2223,
+      "years": 10.38,
+      "is_sharpe": 2.371,
+      "oos_sharpe": 1.263,
+      "wf_ratio": 0.533,
+      "is_cagr": 0.7657,
+      "oos_cagr": 0.3229
+    },
+    {
+      "w_crypto": 0.25,
+      "cagr": 0.5937,
+      "maxdd": -0.3221,
+      "sharpe": 1.8794,
+      "calmar": 1.8435,
+      "composite": 1.2276,
+      "ann_vol": 0.2426,
+      "years": 10.38,
+      "is_sharpe": 2.38,
+      "oos_sharpe": 1.22,
+      "wf_ratio": 0.513,
+      "is_cagr": 0.8702,
+      "oos_cagr": 0.3285
+    },
+    {
+      "w_crypto": 0.3,
+      "cagr": 0.6447,
+      "maxdd": -0.3386,
+      "sharpe": 1.8553,
+      "calmar": 1.904,
+      "composite": 1.2622,
+      "ann_vol": 0.2659,
+      "years": 10.38,
+      "is_sharpe": 2.36,
+      "oos_sharpe": 1.171,
+      "wf_ratio": 0.496,
+      "is_cagr": 0.9777,
+      "oos_cagr": 0.3331
+    }
+  ],
+  "best_v3": {
+    "w_crypto": 0.2,
+    "cagr": 0.5272,
+    "maxdd": -0.2204,
+    "sharpe": 2.0965,
+    "calmar": 2.3918,
+    "composite": 1.3857,
+    "ann_vol": 0.1918,
+    "years": 10.38,
+    "is_sharpe": 2.55,
+    "oos_sharpe": 1.531,
+    "wf_ratio": 0.6,
+    "is_cagr": 0.6979,
+    "oos_cagr": 0.3521
+  },
+  "filter_log": [
+    {
+      "date": "2015-08-07",
+      "trigger": "DD_exit",
+      "btc_dd": -0.397
+    },
+    {
+      "date": "2015-11-03",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.14
+    },
+    {
+      "date": "2015-11-10",
+      "trigger": "DD_exit",
+      "btc_dd": -0.27
+    },
+    {
+      "date": "2015-12-07",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.145
+    },
+    {
+      "date": "2016-08-02",
+      "trigger": "DD_exit",
+      "btc_dd": -0.326
+    },
+    {
+      "date": "2016-10-24",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.145
+    },
+    {
+      "date": "2017-01-11",
+      "trigger": "DD_exit",
+      "btc_dd": -0.308
+    },
+    {
+      "date": "2017-01-31",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.15
+    },
+    {
+      "date": "2017-03-24",
+      "trigger": "DD_exit",
+      "btc_dd": -0.268
+    },
+    {
+      "date": "2017-04-03",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.106
+    },
+    {
+      "date": "2017-09-14",
+      "trigger": "DD_exit",
+      "btc_dd": -0.341
+    },
+    {
+      "date": "2017-09-27",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.144
+    },
+    {
+      "date": "2017-12-22",
+      "trigger": "DD_exit",
+      "btc_dd": -0.294
+    },
+    {
+      "date": "2018-01-05",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.124
+    },
+    {
+      "date": "2018-01-09",
+      "trigger": "DD_exit",
+      "btc_dd": -0.252
+    },
+    {
+      "date": "2020-11-16",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.135
+    },
+    {
+      "date": "2021-05-17",
+      "trigger": "DD_exit",
+      "btc_dd": -0.314
+    },
+    {
+      "date": "2021-10-06",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.132
+    },
+    {
+      "date": "2021-12-07",
+      "trigger": "DD_exit",
+      "btc_dd": -0.253
+    },
+    {
+      "date": "2024-02-28",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.089
+    },
+    {
+      "date": "2024-08-05",
+      "trigger": "DD_exit",
+      "btc_dd": -0.255
+    },
+    {
+      "date": "2024-08-23",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.117
+    },
+    {
+      "date": "2024-09-06",
+      "trigger": "DD_exit",
+      "btc_dd": -0.264
+    },
+    {
+      "date": "2024-09-19",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.138
+    },
+    {
+      "date": "2025-03-10",
+      "trigger": "DD_exit",
+      "btc_dd": -0.251
+    },
+    {
+      "date": "2025-04-22",
+      "trigger": "DD_reentry",
+      "btc_dd": -0.122
+    },
+    {
+      "date": "2025-11-17",
+      "trigger": "DD_exit",
+      "btc_dd": -0.264
+    }
+  ],
+  "meta": {
+    "date": "2026-02-22",
+    "author": "\u4ee3\u7801\u718a \ud83d\udc3b",
+    "desc": "Hybrid v3: BTC 200dMA + \u56de\u64a4\u4fdd\u62a4 + vol targeting",
+    "wf_is": "2015-01-01 ~ 2020-12-31",
+    "wf_oos": "2021-01-01 ~ 2025-12-31",
+    "composite_formula": "Sharpe*0.25 + Calmar*0.25 + min(CAGR,2.0)*0.50",
+    "btc_ma_window": 200,
+    "btc_dd_exit": -0.25,
+    "btc_dd_reentry": -0.15,
+    "btc_vol_window": 60,
+    "btc_vol_target": 0.8
+  }
+}
