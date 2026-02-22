@@ -1,0 +1,41 @@
+{
+  "strategy": "v10c_final: v9j + defensive_bridge_15% + spy_hi_soft_10%",
+  "full": {
+    "cagr": 0.31712636133614436,
+    "max_dd": -0.10191421114333492,
+    "sharpe": 1.9087780936096181,
+    "calmar": 3.1116991220206693
+  },
+  "is": {
+    "cagr": 0.3475438024714683,
+    "max_dd": -0.10191421114333492,
+    "sharpe": 2.107273999626543,
+    "calmar": 3.4101603551900457
+  },
+  "oos": {
+    "cagr": 0.2582223313826586,
+    "max_dd": -0.09518743184285415,
+    "sharpe": 1.5702373758620443,
+    "calmar": 2.712777584008783
+  },
+  "wf": 0.7451510226673542,
+  "composite": 2.071616158519344,
+  "turnover": 0.52590767026021,
+  "regime_hist": {
+    "bull_hi": 50,
+    "soft_bull": 64,
+    "bear": 17
+  },
+  "params": {
+    "defensive_frac": 0.15,
+    "defensive_etfs": [
+      "XLV",
+      "XLP",
+      "XLU"
+    ],
+    "spy_soft_hi_thresh": -0.07,
+    "spy_soft_hi_frac": 0.1,
+    "tlt_bear_frac": 0.25,
+    "vol_target": 0.11
+  }
+}

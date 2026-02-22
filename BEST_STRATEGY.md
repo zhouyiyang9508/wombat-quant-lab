@@ -1,6 +1,6 @@
 # Best Strategies — Wombat Quant Lab
 
-> Updated: 2026-02-21 by 代码熊 🐻 (v9j探索)
+> Updated: 2026-02-22 by 代码熊 🐻 (v10a/v10b/v10c探索)
 
 > ⚠️ **重要提醒 (2026-02-21)**: 月频回测的 MaxDD 严重低估！
 > 日频审计发现: Stock v9f/v9g 真实 MaxDD = **-26.51%** (月频报 -14.9%, 低估 1.78x)
@@ -10,16 +10,21 @@
 
 > Composite = Sharpe×0.4 + Calmar×0.4 + CAGR×0.2 (simple formula)
 > 
-> ⭐ **WF注意**: WF下降趋势明显 (v9j→v9m→v9n: 0.78→0.75→0.70), 因此 **v9j仍为推荐策略** (最佳WF)
-> v9m/v9n Composite更高但WF牺牲较大; v9j是Composite与WF的最优平衡点
+> ⭐ **策略选择指南**:
+> - 最高Composite: v9n (2.090, WF 0.70) — 激进版
+> - 最高Sharpe: v10c (1.91, Composite 2.072, WF 0.75) — 风险调整最优
+> - 最稳健: v9j (2.057, WF 0.78) — 推荐实盘部署
+> - 核心科学发现: 纯ETF策略WF=1.05但Composite仅0.60 → 个股alpha真实存在，WF成本值得接受
 
 | Rank | Strategy | CAGR | MaxDD | Sharpe | Calmar | Composite | WF | Notes |
 |------|----------|------|-------|--------|--------|-----------|-----|-------|
-| 1 | **Stock v9n Combo🆕** | 32.2% | -10.0% | 1.84 | 3.22 | **2.090** | ✅ 0.70 | 最高Composite |
-| 2 | **Stock v9m SPY-Soft🆕** | 32.0% | -10.0% | 1.84 | 3.21 | **2.086** | ✅ 0.75 | 好平衡 |
-| 3 | **Stock v9l AdaptVol🆕** | 32.1% | -10.0% | 1.83 | 3.20 | **2.077** | ✅ 0.71 | WF偏低 |
-| 4 | **Stock v9j TLT Bear** 🏆⭐推荐 | 32.3% | -10.3% | 1.85 | 3.13 | **2.057** | ✅ **0.78** | 最稳健 |
-| 5 | Stock v9i VolTarget-11% | 31.9% | -10.7% | 1.81 | 2.97 | 1.973 | ✅ 0.82 | |
+| 1 | **Stock v9n Combo** | 32.2% | -10.0% | 1.84 | 3.22 | **2.090** | ✅ 0.70 | 最高Comp |
+| 2 | **Stock v9m SPY-Soft** | 32.0% | -10.0% | 1.84 | 3.21 | **2.086** | ✅ 0.75 | Comp+WF平衡 |
+| 3 | **Stock v10c🆕 DefBridge+SoftHedge** | 31.7% | -10.2% | **1.91** | 3.11 | **2.072** | ✅ 0.75 | 最高Sharpe! |
+| 4 | **Stock v10b🆕 DefensiveBridge** | 31.6% | -10.2% | 1.90 | 3.10 | **2.064** | ✅ 0.76 | Sharpe优 |
+| 5 | **Stock v9l AdaptVol** | 32.1% | -10.0% | 1.83 | 3.20 | **2.077** | ✅ 0.71 | WF偏低 |
+| 6 | **Stock v9j TLT Bear** 🏆⭐推荐 | 32.3% | -10.3% | 1.85 | 3.13 | **2.057** | ✅ **0.78** | 最稳健 |
+| 7 | Stock v9i VolTarget-11% | 31.9% | -10.7% | 1.81 | 2.97 | 1.973 | ✅ 0.82 | |
 | 6 | Stock v9g Dynamic-Sectors | 37.2% | -14.9% | 1.71 | 2.50 | 1.759 | ✅ 0.78 | |
 | 7 | Stock v9f GDXJ-Vol+GDX-Fine ⭐⭐⭐⭐⭐ | 34.6% | -14.9% | 1.67 | 2.32 | 1.667 | ✅ 0.88 | |
 | 8 | Stock v9e GDX-Compete+Vol ⭐⭐⭐⭐⭐ | 33.3% | -14.9% | 1.64 | 2.24 | 1.617 | ✅ 0.88 | |
@@ -31,6 +36,41 @@
 | 14 | Stock v4d DD+GLD ⭐⭐ | 27.1% | -15.0% | 1.45 | 1.81 | 1.356 | ✅ 0.80 | |
 | 15 | Stock v3b SecRot+Trend | 25.8% | -17.7% | 1.35 | 1.46 | 1.173 | ✅ 0.85 | |
 | 16 | BTC v7f DualMom ⭐ | 58.8% | -35.7% | 1.35 | 1.64 | 1.314 | ❌ | |
+
+## 🆕 Latest Exploration (2026-02-22, Round 3): v10a/v10b/v10c
+
+### Key Finding: WF vs Alpha Trade-off is Fundamental
+
+| Strategy | Architecture | Composite | WF | Sharpe | Notes |
+|----------|-------------|-----------|-----|--------|-------|
+| v10a | Pure ETF (13 ETFs) | 0.60 | **1.05** | 0.84 | Simple → high WF, low alpha |
+| v9j | Individual stocks (467) | 2.057 | 0.78 | 1.85 | Complex → low(er) WF, high alpha |
+| v10b | Stocks + Defensive ETF bridge | 2.064 | 0.76 | 1.90 | Best balance |
+| v10c | v10b + SPY soft hedge | 2.072 | 0.75 | **1.91** | **Highest Sharpe Ever** |
+
+**Insight**: Pure ETF rotation WF=1.05 confirms ETF strategies don't overfit. But 467-stock selection captures so much more alpha (CAGR 32% vs 9%) that the WF penalty is worth it. The "right" approach is to use stocks for alpha but ETFs for defensive buffering.
+
+### Stock v10c — Defensive Bridge + Soft Hedge (Composite 2.072, Sharpe 1.91) 🆕
+**File**: `stocks/codebear/momentum_v10c_final.py`
+- v9j base + 15% XLV/XLP/XLU in soft-bull (45-65% breadth) + SPY<-7%→+10%GLD
+- Composite **2.072** | Sharpe **1.91** ← **BEST EVER** | MaxDD -10.2% | WF **0.75**
+- 64/131 months (49%) in soft-bull regime with defensive ETF allocation
+- Regime dist: bull_hi=50 / soft_bull=64 / bear=17
+
+### Stock v10b — Defensive Sector Bridge (Composite 2.064, Sharpe 1.90) 🆕
+**File**: `stocks/codebear/momentum_v10b.py`
+- When breadth 45-65% ("soft-bull"), add 15% XLV+XLP+XLU alongside stocks
+- Composite **2.064** | Sharpe **1.90** (+0.05 vs v9j) | MaxDD -10.2% | WF **0.76**
+- Key insight: defensive sectors maintain equity beta while reducing volatility
+
+### Stock v10a — Pure ETF Rotation (Scientific Control)
+**File**: `stocks/codebear/momentum_v10a.py`
+- Only 13 equity ETFs + defensive assets, NO individual stocks
+- Composite **0.60** | Sharpe 0.84 | CAGR 8.9% | MaxDD -14.7% | WF **1.05** (perfect OOS)
+- Proves: fewer instruments = better WF but far less alpha
+- Scientific value: validates that the stock-picking alpha is real and worth the WF cost
+
+---
 
 ## 🆕 Latest Exploration (2026-02-21, Round 2): v9l/v9m/v9n
 
