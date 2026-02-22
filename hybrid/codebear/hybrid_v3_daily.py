@@ -404,6 +404,12 @@ def run_crypto_v3_daily(btc_p, eth_p, gld_p, shy_p,
     filter_log = []  # 记录过滤触发日期
 
     for day_idx, day in enumerate(trading_days):
+        # 第一天无 prev_day，跳过
+        if day_idx == 0:
+            equity_vals.append(val); equity_dates.append(day); continue
+        # 修复前瞻偏差：所有日频信号用昨天收盘价
+        prev_day_crypto = trading_days[day_idx - 1]
+
         # ── 月频信号更新 ──────────────────────────────────────────────────
         past_me = month_ends[month_ends < day]
         if len(past_me) > 0:
@@ -450,11 +456,11 @@ def run_crypto_v3_daily(btc_p, eth_p, gld_p, shy_p,
                 prev_monthly_w  = new_mw.copy()
                 processed_months.add(last_me)
 
-        # ── 日频过滤层（实时 BTC 状态检测）──────────────────────────────
-        if day in btc_200ma.index and day in btc_dd_series.index:
-            btc_price_now = btc_p.loc[day] if day in btc_p.index else np.nan
-            btc_ma_now    = btc_200ma.loc[day]
-            btc_dd_now    = btc_dd_series.loc[day]
+        # ── 日频过滤层（用 prev_day 价格，避免前瞻偏差）────────────────────
+        if prev_day_crypto in btc_200ma.index and prev_day_crypto in btc_dd_series.index:
+            btc_price_now = btc_p.loc[prev_day_crypto] if prev_day_crypto in btc_p.index else np.nan
+            btc_ma_now    = btc_200ma.loc[prev_day_crypto]
+            btc_dd_now    = btc_dd_series.loc[prev_day_crypto]
 
             # Layer 2: BTC 200dMA 趋势过滤
             trend_blocked = bool(pd.notna(btc_ma_now) and pd.notna(btc_price_now) and

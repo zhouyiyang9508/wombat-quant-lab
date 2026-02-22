@@ -126,6 +126,12 @@ def run_crypto_v5_daily(btc_p, eth_p, gld_p,
     equity_vals, equity_dates = [], []
 
     for day_idx, day in enumerate(trading_days):
+        # 第一天没有 prev_day，跳过（无法计算收益）
+        if day_idx == 0:
+            equity_vals.append(val); equity_dates.append(day); continue
+        # 修复前瞻偏差：所有日频信号必须用昨天收盘价（prev_day），不能用当天收盘价
+        prev_day = trading_days[day_idx - 1]
+
         # 月末更新信号
         past_mes = month_ends[month_ends < day]
         if len(past_mes) > 0:
@@ -227,20 +233,20 @@ def run_crypto_v5_daily(btc_p, eth_p, gld_p,
         cur_me = app_mes[-1]
         base_w = monthly_weights[cur_me].copy()
 
-        # 日频 BTC MA（用于 v3 兼容 + BTC DD）
-        btc_now = btc_p.loc[:day].dropna()
-        btc_ma_now = btc_ma.loc[:day].dropna()
-        eth_now = eth_p.loc[:day].dropna()
-        eth_ma_now = eth_ma.loc[:day].dropna()
+        # 日频 BTC/ETH MA 过滤（必须用 prev_day 收盘价，避免前瞻偏差）
+        btc_now = btc_p.loc[:prev_day].dropna()
+        btc_ma_now = btc_ma.loc[:prev_day].dropna()
+        eth_now = eth_p.loc[:prev_day].dropna()
+        eth_ma_now = eth_ma.loc[:prev_day].dropna()
 
         btc_daily_above = (len(btc_now) > 0 and len(btc_ma_now) > 0 and
                            float(btc_now.iloc[-1]) > float(btc_ma_now.iloc[-1]))
         eth_daily_above = (len(eth_now) > 0 and len(eth_ma_now) > 0 and
                            float(eth_now.iloc[-1]) > float(eth_ma_now.iloc[-1]))
 
-        # BTC 回撤保护（全局）
+        # BTC 回撤保护（基于 prev_day，避免前瞻偏差）
         if len(btc_now) >= 5:
-            btc_peak_val = float(btc_p.loc[:day].max())
+            btc_peak_val = float(btc_p.loc[:prev_day].max())
             btc_dd = float(btc_now.iloc[-1] / btc_peak_val - 1)
             if btc_dd < CRYPTO_DD_EXIT: btc_dd_blocked = True
             elif btc_dd > CRYPTO_DD_REENTRY: btc_dd_blocked = False
@@ -294,7 +300,7 @@ def run_crypto_v5_daily(btc_p, eth_p, gld_p,
                 val *= (1 - tc)
         prev_w = current_w.copy()
 
-        prev_day = trading_days[day_idx - 1]
+        # prev_day 已在循环头部定义
         day_ret = 0.0
         for ticker, w in current_w.items():
             if w == 0: continue
